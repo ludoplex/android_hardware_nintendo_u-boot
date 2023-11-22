@@ -43,10 +43,7 @@ class MaintainersInclude(Include):
     def parse_maintainers(self, path):
         """Parse all the MAINTAINERS lines into ReST for human-readability"""
 
-        result = list()
-        result.append(".. _maintainers:")
-        result.append("")
-
+        result = [".. _maintainers:", ""]
         # Poor man's state machine.
         descriptions = False
         maintainers = False
@@ -60,6 +57,8 @@ class MaintainersInclude(Include):
         field_prev = ""
         field_content = ""
 
+        # Linkify all non-wildcard refs to ReST files in Documentation/.
+        pat = '(Documentation/([^\s\?\*]*)\.rst)'
         for line in open(path):
             if sys.version_info.major == 2:
                 line = unicode(line, 'utf-8')
@@ -69,8 +68,6 @@ class MaintainersInclude(Include):
                 # Ensure a blank line following the last "|"-prefixed line.
                 result.append("")
 
-            # Start subsystem processing? This is to skip processing the text
-            # between the Maintainers heading and the first subsystem name.
             if maintainers and not subsystems:
                 if re.search('^[A-Z0-9]', line):
                     subsystems = True
@@ -78,26 +75,19 @@ class MaintainersInclude(Include):
             # Drop needless input whitespace.
             line = line.rstrip()
 
-            # Linkify all non-wildcard refs to ReST files in Documentation/.
-            pat = '(Documentation/([^\s\?\*]*)\.rst)'
-            m = re.search(pat, line)
-            if m:
+            if m := re.search(pat, line):
                 # maintainers.rst is in a subdirectory, so include "../".
-                line = re.sub(pat, ':doc:`%s <../%s>`' % (m.group(2), m.group(2)), line)
+                line = re.sub(pat, f':doc:`{m.group(2)} <../{m.group(2)}>`', line)
 
             # Check state machine for output rendering behavior.
             output = None
             if descriptions:
                 # Escape the escapes in preformatted text.
                 output = "| %s" % (line.replace("\\", "\\\\"))
-                # Look for and record field letter to field name mappings:
-                #   R: Designated *reviewer*: FullName <address@domain>
-                m = re.search("\s(\S):\s", line)
-                if m:
+                if m := re.search("\s(\S):\s", line):
                     field_letter = m.group(1)
-                if field_letter and not field_letter in fields:
-                    m = re.search("\*([^\*]+)\*", line)
-                    if m:
+                if field_letter and field_letter not in fields:
+                    if m := re.search("\*([^\*]+)\*", line):
                         fields[field_letter] = m.group(1)
             elif subsystems:
                 # Skip empty lines: subsystem parser adds them as needed.
@@ -128,18 +118,18 @@ class MaintainersInclude(Include):
                     # readability and to escape any escapes.
                     if field in ['F', 'N', 'X', 'K']:
                         # But only if not already marked :)
-                        if not ':doc:' in details:
-                            details = '``%s``' % (details)
+                        if ':doc:' not in details:
+                            details = f'``{details}``'
 
                     # Comma separate email field continuations.
                     if field == field_prev and field_prev in ['M', 'R', 'L']:
-                        field_content = field_content + ","
+                        field_content = f"{field_content},"
 
                     # Do not repeat field names, so that field entries
                     # will be collapsed together.
                     if field != field_prev:
                         output = field_content + "\n"
-                        field_content = ":%s:" % (fields.get(field, field))
+                        field_content = f":{fields.get(field, field)}:"
                     field_content = field_content + "\n\t%s" % (details)
                     field_prev = field
             else:
@@ -147,9 +137,7 @@ class MaintainersInclude(Include):
 
             # Re-split on any added newlines in any above parsing.
             if output != None:
-                for separated in output.split('\n'):
-                    result.append(separated)
-
+                result.extend(iter(output.split('\n')))
             # Update the state machine when we find heading separators.
             if line.startswith('----------'):
                 if prev.startswith('Descriptions'):
@@ -175,13 +163,13 @@ class MaintainersInclude(Include):
     def run(self):
         """Include the MAINTAINERS file as part of this reST file."""
         if not self.state.document.settings.file_insertion_enabled:
-            raise self.warning('"%s" directive disabled.' % self.name)
+            raise self.warning(f'"{self.name}" directive disabled.')
 
         # Walk up source path directories to find Documentation/../
         path = self.state_machine.document.attributes['source']
         path = os.path.realpath(path)
         tail = path
-        while tail != "Documentation" and tail != "":
+        while tail not in ["Documentation", ""]:
             (path, tail) = os.path.split(path)
 
         # Append "MAINTAINERS"

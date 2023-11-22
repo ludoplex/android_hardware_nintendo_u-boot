@@ -107,7 +107,7 @@ class ConsoleBase(object):
 
         # Array slice removes leading/trailing quotes
         self.prompt = self.config.buildconfig['config_sys_prompt'][1:-1]
-        self.prompt_compiled = re.compile('^' + re.escape(self.prompt), re.MULTILINE)
+        self.prompt_compiled = re.compile(f'^{re.escape(self.prompt)}', re.MULTILINE)
         self.p = None
         self.disable_check_count = {pat[PAT_ID]: 0 for pat in bad_pattern_defs}
         self.eval_bad_patterns()
@@ -237,7 +237,7 @@ class ConsoleBase(object):
         """
 
         if self.at_prompt and \
-                self.at_prompt_logevt != self.logstream.logfile.cur_evt:
+                    self.at_prompt_logevt != self.logstream.logfile.cur_evt:
             self.logstream.write(self.prompt, implicit=True)
 
         try:
@@ -256,8 +256,7 @@ class ConsoleBase(object):
                 m = self.p.expect([chunk] + self.bad_patterns)
                 if m != 0:
                     self.at_prompt = False
-                    raise Exception('Bad pattern found on console: ' +
-                                    self.bad_pattern_ids[m - 1])
+                    raise Exception(f'Bad pattern found on console: {self.bad_pattern_ids[m - 1]}')
             if not wait_for_prompt:
                 return
             if wait_for_reboot:
@@ -266,10 +265,9 @@ class ConsoleBase(object):
                 m = self.p.expect([self.prompt_compiled] + self.bad_patterns)
                 if m != 0:
                     self.at_prompt = False
-                    raise Exception('Bad pattern found on console: ' +
-                                    self.bad_pattern_ids[m - 1])
-            self.at_prompt = True
+                    raise Exception(f'Bad pattern found on console: {self.bad_pattern_ids[m - 1]}')
             self.at_prompt_logevt = self.logstream.logfile.cur_evt
+            self.at_prompt = True
             # Only strip \r\n; space/TAB might be significant if testing
             # indentation.
             return self.p.before.strip('\r\n')
@@ -292,10 +290,7 @@ class ConsoleBase(object):
             A list of output strings from each command, one element for each
             command.
         """
-        output = []
-        for cmd in cmds:
-            output.append(self.run_command(cmd))
-        return output
+        return [self.run_command(cmd) for cmd in cmds]
 
     def ctrlc(self):
         """Send a CTRL-C character to U-Boot.
@@ -416,10 +411,7 @@ class ConsoleBase(object):
             if not self.config.gdbserver:
                 self.p.timeout = 30000
             self.p.logfile_read = self.logstream
-            if expect_reset:
-                loop_num = 2
-            else:
-                loop_num = 1
+            loop_num = 2 if expect_reset else 1
             self.wait_for_boot_prompt(loop_num = loop_num)
             self.at_prompt = True
             self.at_prompt_logevt = self.logstream.logfile.cur_evt
@@ -464,9 +456,7 @@ class ConsoleBase(object):
         Returns:
             The output produced by ensure_spawed(), as a string.
         """
-        if self.p:
-            return self.p.get_expect_output()
-        return None
+        return self.p.get_expect_output() if self.p else None
 
     def validate_version_string_in_text(self, text):
         """Assert that a command's output includes the U-Boot signon message.

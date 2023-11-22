@@ -130,12 +130,11 @@ def get_matched_defconfig(line):
     Returns:
         list of str: a list of matching defconfig files
     """
-    dirname = os.path.dirname(line)
-    if dirname:
+    if dirname := os.path.dirname(line):
         pattern = line
     else:
         pattern = os.path.join('configs', line)
-    return glob.glob(pattern) + glob.glob(pattern + '_defconfig')
+    return glob.glob(pattern) + glob.glob(f'{pattern}_defconfig')
 
 def get_matched_defconfigs(defconfigs_file):
     """Get all the defconfig files that match the patterns in a file.
@@ -179,9 +178,10 @@ def get_all_defconfigs():
     defconfigs = []
     for (dirpath, _, filenames) in os.walk('configs'):
         dirpath = dirpath[len('configs') + 1:]
-        for filename in fnmatch.filter(filenames, '*_defconfig'):
-            defconfigs.append(os.path.join(dirpath, filename))
-
+        defconfigs.extend(
+            os.path.join(dirpath, filename)
+            for filename in fnmatch.filter(filenames, '*_defconfig')
+        )
     return defconfigs
 
 def color_text(color_enabled, color, string):
@@ -329,7 +329,7 @@ def read_file(fname, as_lines=True, skip_unicode=False):
         except UnicodeDecodeError as e:
             if not skip_unicode:
                 raise
-            print("Failed on file %s': %s" % (fname, e))
+            print(f"Failed on file {fname}': {e}")
             return None
 
 def cleanup_empty_blocks(header_path, args):
@@ -426,9 +426,12 @@ def cleanup_headers(configs, args):
 
     patterns = []
     for config in configs:
-        patterns.append(re.compile(r'#\s*define\s+%s\b' % config))
-        patterns.append(re.compile(r'#\s*undef\s+%s\b' % config))
-
+        patterns.extend(
+            (
+                re.compile(r'#\s*define\s+%s\b' % config),
+                re.compile(r'#\s*undef\s+%s\b' % config),
+            )
+        )
     for dir in 'include', 'arch', 'board':
         for (dirpath, dirnames, filenames) in os.walk(dir):
             if dirpath == os.path.join('include', 'generated'):
@@ -460,10 +463,7 @@ def cleanup_whitelist(configs, args):
     write_file(os.path.join('scripts', 'config_whitelist.txt'), lines)
 
 def find_matching(patterns, line):
-    for pat in patterns:
-        if pat.search(line):
-            return True
-    return False
+    return any(pat.search(line) for pat in patterns)
 
 def cleanup_readme(configs, args):
     """Delete config description in README
@@ -475,10 +475,7 @@ def cleanup_readme(configs, args):
     if not confirm(args, 'Clean up README?'):
         return
 
-    patterns = []
-    for config in configs:
-        patterns.append(re.compile(r'^\s+%s' % config))
-
+    patterns = [re.compile(r'^\s+%s' % config) for config in configs]
     lines = read_file('README')
 
     found = False
@@ -511,7 +508,7 @@ def try_expand(line):
         if re.search(r'[*+-/]|<<|SZ_+|\(([^\)]+)\)', val):
             newval = hex(aeval(val))
             print('\tExpanded expression %s to %s' % (val, newval))
-            return cfg+'='+newval
+            return f'{cfg}={newval}'
     except:
         print('\tFailed to expand expression in %s' % line)
 
@@ -588,12 +585,10 @@ class KconfigParser:
         arch = ''
         cpu = ''
         for line in read_file(self.dotconfig):
-            m = self.re_arch.match(line)
-            if m:
+            if m := self.re_arch.match(line):
                 arch = m.group(1)
                 continue
-            m = self.re_cpu.match(line)
-            if m:
+            if m := self.re_cpu.match(line):
                 cpu = m.group(1)
 
         if not arch:
@@ -621,11 +616,11 @@ class KconfigParser:
           A tupple of the action for this defconfig and the line
           matched for the config.
         """
-        not_set = '# %s is not set' % config
+        not_set = f'# {config} is not set'
 
         for line in autoconf_lines:
             line = line.rstrip()
-            if line.startswith(config + '='):
+            if line.startswith(f'{config}='):
                 new_val = line
                 break
         else:
@@ -635,7 +630,7 @@ class KconfigParser:
 
         for line in dotconfig_lines:
             line = line.rstrip()
-            if line.startswith(config + '=') or line == not_set:
+            if line.startswith(f'{config}=') or line == not_set:
                 old_val = line
                 break
         else:
@@ -650,7 +645,7 @@ class KconfigParser:
             # This is a problem if the CONFIG is int type.
             # Check the type in Kconfig and handle it correctly.
             if new_val[-2:] == '=y':
-                new_val = new_val[:-1] + '1'
+                new_val = f'{new_val[:-1]}1'
 
         return (ACTION_NO_CHANGE if old_val == new_val else ACTION_MOVE,
                 new_val)
@@ -702,18 +697,17 @@ class KconfigParser:
 
         for (action, value) in results:
             if action == ACTION_MOVE:
-                actlog = "Move '%s'" % value
+                actlog = f"Move '{value}'"
                 log_color = COLOR_LIGHT_GREEN
             elif action == ACTION_NO_ENTRY:
-                actlog = '%s is not defined in Kconfig.  Do nothing.' % value
+                actlog = f'{value} is not defined in Kconfig.  Do nothing.'
                 log_color = COLOR_LIGHT_BLUE
             elif action == ACTION_NO_ENTRY_WARN:
-                actlog = '%s is not defined in Kconfig (suspicious).  Do nothing.' % value
+                actlog = f'{value} is not defined in Kconfig (suspicious).  Do nothing.'
                 log_color = COLOR_YELLOW
                 suspicious = True
             elif action == ACTION_NO_CHANGE:
-                actlog = "'%s' is the same as the define in Kconfig.  Do nothing." \
-                         % value
+                actlog = f"'{value}' is the same as the define in Kconfig.  Do nothing."
                 log_color = COLOR_LIGHT_PURPLE
             else:
                 sys.exit('Internal Error. This should not happen.')
@@ -747,7 +741,7 @@ class KconfigParser:
         for (action, value) in self.results:
             if action != ACTION_MOVE:
                 continue
-            if not value in defconfig_lines:
+            if value not in defconfig_lines:
                 log += color_text(self.args.color, COLOR_YELLOW,
                                   "'%s' was removed by savedefconfig.\n" %
                                   value)
@@ -792,7 +786,7 @@ class Slot:
     """
 
     def __init__(self, toolchains, configs, args, progress, devnull,
-		 make_cmd, reference_src_dir, db_queue):
+    		 make_cmd, reference_src_dir, db_queue):
         """Create a new process slot.
 
         Args:
@@ -811,7 +805,7 @@ class Slot:
         self.progress = progress
         self.build_dir = tempfile.mkdtemp()
         self.devnull = devnull
-        self.make_cmd = (make_cmd, 'O=' + self.build_dir)
+        self.make_cmd = make_cmd, f'O={self.build_dir}'
         self.reference_src_dir = reference_src_dir
         self.db_queue = db_queue
         self.parser = KconfigParser(configs, args, self.build_dir)
@@ -830,7 +824,7 @@ class Slot:
         If the subprocess is still running, wait until it finishes.
         """
         if self.state != STATE_IDLE:
-            while self.ps.poll() == None:
+            while self.ps.poll() is None:
                 pass
         shutil.rmtree(self.build_dir)
 
@@ -875,7 +869,7 @@ class Slot:
         if self.state == STATE_IDLE:
             return True
 
-        if self.ps.poll() == None:
+        if self.ps.poll() is None:
             return False
 
         if self.ps.poll() != 0:
@@ -898,7 +892,7 @@ class Slot:
         else:
             sys.exit('Internal Error. This should not happen.')
 
-        return True if self.state == STATE_IDLE else False
+        return self.state == STATE_IDLE
 
     def handle_error(self):
         """Handle error cases."""
@@ -934,8 +928,7 @@ class Slot:
         env = toolchain.MakeEnvironment(False)
 
         cmd = list(self.make_cmd)
-        cmd.append('KCONFIG_IGNORE_DUPLICATES=1')
-        cmd.append(AUTO_CONF_PATH)
+        cmd.extend(('KCONFIG_IGNORE_DUPLICATES=1', AUTO_CONF_PATH))
         self.ps = subprocess.Popen(cmd, stdout=self.devnull, env=env,
                                    stderr=subprocess.PIPE,
                                    cwd=self.current_src_dir)
@@ -977,8 +970,7 @@ class Slot:
     def update_defconfig(self):
         """Update the input defconfig and go back to the idle state."""
 
-        log = self.parser.check_defconfig()
-        if log:
+        if log := self.parser.check_defconfig():
             self.suspicious_boards.add(self.defconfig)
             self.log += log
         orig_defconfig = os.path.join('configs', self.defconfig)
@@ -1003,7 +995,7 @@ class Slot:
         # output at least 30 characters to hide the "* defconfigs out of *".
         log = self.defconfig.ljust(30) + '\n'
 
-        log += '\n'.join([ '    ' + s for s in self.log.split('\n') ])
+        log += '\n'.join([f'    {s}' for s in self.log.split('\n')])
         # Some threads are running in parallel.
         # Print log atomically to not mix up logs from different threads.
         print(log, file=(sys.stdout if success else sys.stderr))
@@ -1034,7 +1026,7 @@ class Slots:
     """Controller of the array of subprocess slots."""
 
     def __init__(self, toolchains, configs, args, progress,
-		 reference_src_dir, db_queue):
+    		 reference_src_dir, db_queue):
         """Create a new slots controller.
 
         Args:
@@ -1050,10 +1042,19 @@ class Slots:
         self.slots = []
         devnull = subprocess.DEVNULL
         make_cmd = get_make_cmd()
-        for i in range(args.jobs):
-            self.slots.append(Slot(toolchains, configs, args, progress,
-				   devnull, make_cmd, reference_src_dir,
-				   db_queue))
+        self.slots.extend(
+            Slot(
+                toolchains,
+                configs,
+                args,
+                progress,
+                devnull,
+                make_cmd,
+                reference_src_dir,
+                db_queue,
+            )
+            for _ in range(args.jobs)
+        )
 
     def add(self, defconfig):
         """Add a new subprocess if a vacant slot is found.
@@ -1064,10 +1065,7 @@ class Slots:
         Returns:
           Return True on success or False on failure
         """
-        for slot in self.slots:
-            if slot.add(defconfig):
-                return True
-        return False
+        return any(slot.add(defconfig) for slot in self.slots)
 
     def available(self):
         """Check if there is a vacant slot.
@@ -1075,10 +1073,7 @@ class Slots:
         Returns:
           Return True if at lease one vacant slot is found, False otherwise.
         """
-        for slot in self.slots:
-            if slot.poll():
-                return True
-        return False
+        return any(slot.poll() for slot in self.slots)
 
     def empty(self):
         """Check if all slots are vacant.
@@ -1095,8 +1090,6 @@ class Slots:
     def show_failed_boards(self):
         """Display all of the failed boards (defconfigs)."""
         boards = set()
-        output_file = 'moveconfig.failed'
-
         for slot in self.slots:
             boards |= slot.get_failed_boards()
 
@@ -1104,6 +1097,8 @@ class Slots:
             boards = '\n'.join(boards) + '\n'
             msg = 'The following boards were not processed due to error:\n'
             msg += boards
+            output_file = 'moveconfig.failed'
+
             msg += '(the list has been saved in %s)\n' % output_file
             print(color_text(self.args.color, COLOR_LIGHT_RED,
                                             msg), file=sys.stderr)
@@ -1113,16 +1108,18 @@ class Slots:
     def show_suspicious_boards(self):
         """Display all boards (defconfigs) with possible misconversion."""
         boards = set()
-        output_file = 'moveconfig.suspicious'
-
         for slot in self.slots:
             boards |= slot.get_suspicious_boards()
 
         if boards:
             boards = '\n'.join(boards) + '\n'
-            msg = 'The following boards might have been converted incorrectly.\n'
-            msg += 'It is highly recommended to check them manually:\n'
+            msg = (
+                'The following boards might have been converted incorrectly.\n'
+                + 'It is highly recommended to check them manually:\n'
+            )
             msg += boards
+            output_file = 'moveconfig.suspicious'
+
             msg += '(the list has been saved in %s)\n' % output_file
             print(color_text(self.args.color, COLOR_YELLOW,
                                             msg), file=sys.stderr)
@@ -1143,8 +1140,9 @@ class ReferenceSource:
         print('Cloning git repo to a separate work directory...')
         subprocess.check_output(['git', 'clone', os.getcwd(), '.'],
                                 cwd=self.src_dir)
-        print("Checkout '%s' to build the original autoconf.mk." % \
-            subprocess.check_output(['git', 'rev-parse', '--short', commit]).strip())
+        print(
+            f"Checkout '{subprocess.check_output(['git', 'rev-parse', '--short', commit]).strip()}' to build the original autoconf.mk."
+        )
         subprocess.check_output(['git', 'checkout', commit],
                                 stderr=subprocess.STDOUT, cwd=self.src_dir)
 
@@ -1174,7 +1172,7 @@ def move_config(toolchains, configs, args, db_queue):
         if args.force_sync:
             print('No CONFIG is specified. You are probably syncing defconfigs.', end=' ')
         elif args.build_db:
-            print('Building %s database' % CONFIG_DATABASE)
+            print(f'Building {CONFIG_DATABASE} database')
         else:
             print('Neither CONFIG nor --force-sync is specified. Nothing will happen.', end=' ')
     else:
@@ -1225,8 +1223,7 @@ def find_kconfig_rules(kconf, config, imply_config):
     Returns:
         Symbol object for 'config' if found, else None
     """
-    sym = kconf.syms.get(imply_config)
-    if sym:
+    if sym := kconf.syms.get(imply_config):
         for sel, cond in (sym.selects + sym.implies):
             if sel.name == config:
                 return sym
@@ -1263,9 +1260,9 @@ def check_imply_rule(kconf, config, imply_config):
         fname = fname[len(cwd) + 1:]
     file_line = ' at %s:%d' % (fname, linenum)
     data = read_file(fname)
-    if data[linenum - 1] != 'config %s' % imply_config:
-        return None, 0, 'bad sym format %s%s' % (data[linenum], file_line)
-    return fname, linenum, 'adding%s' % file_line
+    if data[linenum - 1] != f'config {imply_config}':
+        return None, 0, f'bad sym format {data[linenum]}{file_line}'
+    return fname, linenum, f'adding{file_line}'
 
 def add_imply_rule(config, fname, linenum):
     """Add a new 'imply' option to a Kconfig
@@ -1286,7 +1283,7 @@ def add_imply_rule(config, fname, linenum):
         if line.strip().startswith('help') or not line:
             data.insert(linenum + offset, '\timply %s' % config)
             write_file(fname, data)
-            return 'added%s' % file_line
+            return f'added{file_line}'
 
     return 'could not insert%s'
 
@@ -1401,7 +1398,7 @@ def do_imply_config(config_list, add_imply, imply_flags, skip_added,
     for config in config_list:
         defconfigs = defconfig_db.get(config)
         if not defconfigs:
-            print('%s not found in any defconfig' % config)
+            print(f'{config} not found in any defconfig')
             continue
 
         # Get the set of defconfigs without this one (since a config cannot
@@ -1413,7 +1410,7 @@ def do_imply_config(config_list, add_imply, imply_flags, skip_added,
 
         # This will hold the results: key=config, value=defconfigs containing it
         imply_configs = {}
-        rest_configs = all_configs - set([config])
+        rest_configs = all_configs - {config}
 
         # Look at every possible config, except the target one
         for imply_config in rest_configs:
@@ -1542,10 +1539,7 @@ def defconfig_matches(configs, re_match):
     Returns:
         bool: True if any CONFIG matches the regex
     """
-    for cfg in configs:
-        if re_match.fullmatch(cfg):
-            return True
-    return False
+    return any(re_match.fullmatch(cfg) for cfg in configs)
 
 def do_find_config(config_list):
     """Find boards with a given combination of CONFIGs
@@ -1589,7 +1583,7 @@ def do_find_config(config_list):
             if has_cfg == want:
                 out.add(defc)
     if adhoc:
-        print(f"Error: Not in Kconfig: %s" % ' '.join(adhoc))
+        print(f"Error: Not in Kconfig: {' '.join(adhoc)}")
     else:
         print(f'{len(out)} matches')
         print(' '.join(item.split('_defconfig')[0] for item in out))
@@ -1616,7 +1610,7 @@ def prefix_config(cfg):
         op = cfg[0]
         cfg = cfg[1:]
     if not cfg.startswith('CONFIG_'):
-        cfg = 'CONFIG_' + cfg
+        cfg = f'CONFIG_{cfg}'
     return op + cfg
 
 
@@ -1706,7 +1700,7 @@ doc/develop/moveconfig.rst for documentation.'''
             for flag in args.imply_flags.split(','):
                 bad = flag not in IMPLY_FLAGS
                 if bad:
-                    print("Invalid flag '%s'" % flag)
+                    print(f"Invalid flag '{flag}'")
                 if flag == 'help' or bad:
                     print("Imply flags: (separate with ',')")
                     for name, info in IMPLY_FLAGS.items():
@@ -1745,13 +1739,14 @@ doc/develop/moveconfig.rst for documentation.'''
     if args.commit:
         subprocess.call(['git', 'add', '-u'])
         if configs:
-            msg = 'Convert %s %sto Kconfig' % (configs[0],
-                    'et al ' if len(configs) > 1 else '')
+            msg = f"Convert {configs[0]} {'et al ' if len(configs) > 1 else ''}to Kconfig"
             msg += ('\n\nThis converts the following to Kconfig:\n   %s\n' %
                     '\n   '.join(configs))
         else:
-            msg = 'configs: Resync with savedefconfig'
-            msg += '\n\nRsync all defconfig files using moveconfig.py'
+            msg = (
+                'configs: Resync with savedefconfig'
+                + '\n\nRsync all defconfig files using moveconfig.py'
+            )
         subprocess.call(['git', 'commit', '-s', '-m', msg])
 
     if args.build_db:

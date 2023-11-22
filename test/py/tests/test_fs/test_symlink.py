@@ -24,11 +24,13 @@ class TestSymlink(object):
         """
         fs_type, fs_img, md5val = fs_obj_symlink
         with u_boot_console.log.section('Test Case 1 - create link and read'):
-            output = u_boot_console.run_command_list([
-                'host bind 0 %s' % fs_img,
-                'setenv filesize',
-                'ln host 0:0 %s /%s.link ' % (SMALL_FILE, SMALL_FILE),
-            ])
+            output = u_boot_console.run_command_list(
+                [
+                    f'host bind 0 {fs_img}',
+                    'setenv filesize',
+                    f'ln host 0:0 {SMALL_FILE} /{SMALL_FILE}.link ',
+                ]
+            )
             assert('' in ''.join(output))
 
             output = u_boot_console.run_command_list([
@@ -49,15 +51,15 @@ class TestSymlink(object):
         """
         fs_type, fs_img, md5val = fs_obj_symlink
         with u_boot_console.log.section('Test Case 2 - create chained links'):
-            output = u_boot_console.run_command_list([
-                'host bind 0 %s' % fs_img,
-                'setenv filesize',
-                'ln host 0:0 %s /%s.link1 ' % (SMALL_FILE, SMALL_FILE),
-                'ln host 0:0 /%s.link1 /SUBDIR/%s.link2' % (
-                    SMALL_FILE, SMALL_FILE),
-                'ln host 0:0 SUBDIR/%s.link2 /%s.link3' % (
-                    SMALL_FILE, SMALL_FILE),
-            ])
+            output = u_boot_console.run_command_list(
+                [
+                    f'host bind 0 {fs_img}',
+                    'setenv filesize',
+                    f'ln host 0:0 {SMALL_FILE} /{SMALL_FILE}.link1 ',
+                    f'ln host 0:0 /{SMALL_FILE}.link1 /SUBDIR/{SMALL_FILE}.link2',
+                    f'ln host 0:0 SUBDIR/{SMALL_FILE}.link2 /{SMALL_FILE}.link3',
+                ]
+            )
             assert('' in ''.join(output))
 
             output = u_boot_console.run_command_list([
@@ -78,12 +80,14 @@ class TestSymlink(object):
         """
         fs_type, fs_img, md5val = fs_obj_symlink
         with u_boot_console.log.section('Test Case 1 - create link and read'):
-            output = u_boot_console.run_command_list([
-                'host bind 0 %s' % fs_img,
-                'setenv filesize',
-                'ln host 0:0 %s /%s ' % (MEDIUM_FILE, SMALL_FILE),
-                'ln host 0:0 %s /%s.link ' % (MEDIUM_FILE, MEDIUM_FILE),
-            ])
+            output = u_boot_console.run_command_list(
+                [
+                    f'host bind 0 {fs_img}',
+                    'setenv filesize',
+                    f'ln host 0:0 {MEDIUM_FILE} /{SMALL_FILE} ',
+                    f'ln host 0:0 {MEDIUM_FILE} /{MEDIUM_FILE}.link ',
+                ]
+            )
             assert('' in ''.join(output))
 
             output = u_boot_console.run_command_list([
@@ -96,10 +100,13 @@ class TestSymlink(object):
                 'setenv filesize'])
             assert(md5val[1] in ''.join(output))
 
-            output = u_boot_console.run_command_list([
-                'ln host 0:0 %s.link /%s ' % (MEDIUM_FILE, SMALL_FILE),
-                '%sload host 0:0 %x /%s' % (fs_type, ADDR, SMALL_FILE),
-                'printenv filesize'])
+            output = u_boot_console.run_command_list(
+                [
+                    f'ln host 0:0 {MEDIUM_FILE}.link /{SMALL_FILE} ',
+                    '%sload host 0:0 %x /%s' % (fs_type, ADDR, SMALL_FILE),
+                    'printenv filesize',
+                ]
+            )
             assert('filesize=a00000' in ''.join(output))
 
             output = u_boot_console.run_command_list([

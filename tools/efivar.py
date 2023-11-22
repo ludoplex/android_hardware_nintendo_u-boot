@@ -50,6 +50,8 @@ var_guids = {
         'EFI_IMAGE_SECURITY_DATABASE_GUID': EFI_IMAGE_SECURITY_DATABASE_GUID,
 }
 
+
+
 class EfiStruct:
     # struct efi_var_file
     var_file_fmt = '<QQLL'
@@ -64,7 +66,7 @@ class EfiStruct:
     var_win_cert_fmt = '<L2H'
     var_win_cert_size = struct.calcsize(var_win_cert_fmt)
     # WIN_CERTIFICATE_UEFI_GUID
-    var_win_cert_uefi_guid_fmt = var_win_cert_fmt+'16s'
+    var_win_cert_uefi_guid_fmt = f'{var_win_cert_fmt}16s'
     var_win_cert_uefi_guid_size = struct.calcsize(var_win_cert_uefi_guid_fmt)
 
 class EfiVariable:
@@ -96,23 +98,24 @@ class EfiVariableStore:
         magic, crc32 = hdr[1], hdr[3]
 
         if magic != UBOOT_EFI_VAR_FILE_MAGIC:
-            print("err: invalid magic number: %s"%hex(magic))
+            print(f"err: invalid magic number: {hex(magic)}")
             exit(1)
         if crc32 != calc_crc32(buf[self.efi.var_file_size:]):
-            print("err: invalid crc32: %s"%hex(crc32))
+            print(f"err: invalid crc32: {hex(crc32)}")
             exit(1)
 
     def _get_var_name(self, buf):
         name = ''
         for i in range(0, len(buf) - 1, 2):
-            if not buf[i] and not buf[i+1]:
+            if buf[i] or buf[i + 1]:
+                name += chr(buf[i])
+            else:
                 break
-            name += chr(buf[i])
         return ''.join([chr(x) for x in name.encode('utf_16_le') if x]), i + 2
 
     def _next_var(self, offs=0):
         size, attrs, time, guid = struct.unpack_from(self.efi.var_entry_fmt, self.ents, offs)
-        data_fmt = str(size)+"s"
+        data_fmt = f"{str(size)}s"
         offs += self.efi.var_entry_size
         name, namelen = self._get_var_name(self.ents[offs:])
         offs += namelen
@@ -126,12 +129,11 @@ class EfiVariableStore:
         return self
 
     def __next__(self):
-        if self.offs < len(self.ents):
-            var, noffs = self._next_var(self.offs)
-            self.offs = noffs
-            return var
-        else:
+        if self.offs >= len(self.ents):
             raise StopIteration
+        var, noffs = self._next_var(self.offs)
+        self.offs = noffs
+        return var
 
     def __len__(self):
         return len(self.ents)
@@ -220,11 +222,11 @@ def parse_args(args):
     attrs = parse_attrs(args.attrs)
     guid = args.guid if args.guid else EFI_GLOBAL_VARIABLE_GUID
 
-    if name.lower() == 'db' or name.lower() == 'dbx':
+    if name.lower() in ['db', 'dbx']:
         name = name.lower()
         guid = EFI_IMAGE_SECURITY_DATABASE_GUID
         attrs = NV_BS_RT_AT
-    elif name.lower() == 'pk' or name.lower() == 'kek':
+    elif name.lower() in ['pk', 'kek']:
         name = name.upper()
         guid = EFI_GLOBAL_VARIABLE_GUID
         attrs = NV_BS_RT_AT
@@ -239,9 +241,16 @@ def cmd_set(args):
     env.save()
 
 def print_var(var):
-    print(var.name+':')
-    print("    "+str(var.guid)+' '+''.join([x for x in var_guids if str(var.guid) == var_guids[x]]))
-    print("    "+'|'.join([x for x in var_attrs if var.attrs & var_attrs[x]])+", DataSize = %s"%hex(var.size))
+    print(f'{var.name}:')
+    print(
+        f"    {str(var.guid)} "
+        + ''.join([x for x in var_guids if str(var.guid) == var_guids[x]])
+    )
+    print(
+        "    "
+        + '|'.join([x for x in var_attrs if var.attrs & var_attrs[x]])
+        + f", DataSize = {hex(var.size)}"
+    )
     hexdump(var.data)
 
 def cmd_print(args):
@@ -251,17 +260,13 @@ def cmd_print(args):
 
     found = False
     for var in env:
-        if not args.name:
-            if args.guid and args.guid != str(var.guid):
-                continue
-            print_var(var)
-            found = True
-        else:
+        if args.name:
             if args.name != var.name or (args.guid and args.guid != str(var.guid)):
                 continue
-            print_var(var)
-            found = True
-
+        elif args.guid and args.guid != str(var.guid):
+            continue
+        found = True
+        print_var(var)
     if not found:
         print("err: variable not found")
         exit(1)
@@ -333,7 +338,11 @@ def main():
     setp.add_argument('--infile', '-i', required=True, help='file to save the EFI variables')
     setp.add_argument('--name', '-n', required=True, help='variable name')
     setp.add_argument('--attrs', '-a', help='variable attributes (values: nv,bs,rt,at,ro,aw)')
-    setp.add_argument('--guid', '-g', help="vendor GUID (default: %s)"%EFI_GLOBAL_VARIABLE_GUID)
+    setp.add_argument(
+        '--guid',
+        '-g',
+        help=f"vendor GUID (default: {EFI_GLOBAL_VARIABLE_GUID})",
+    )
     setp.add_argument('--type', '-t', help='variable type (values: file|u8|u16|u32|u64|str)')
     setp.add_argument('--data', '-d', help='data or filename')
     setp.set_defaults(func=cmd_set)
@@ -342,7 +351,11 @@ def main():
     delp.add_argument('--infile', '-i', required=True, help='file to save the EFI variables')
     delp.add_argument('--name', '-n', required=True, help='variable name')
     delp.add_argument('--attrs', '-a', help='variable attributes (values: nv,bs,rt,at,ro,aw)')
-    delp.add_argument('--guid', '-g', help="vendor GUID (default: %s)"%EFI_GLOBAL_VARIABLE_GUID)
+    delp.add_argument(
+        '--guid',
+        '-g',
+        help=f"vendor GUID (default: {EFI_GLOBAL_VARIABLE_GUID})",
+    )
     delp.set_defaults(func=cmd_del)
 
     signp = subp.add_parser('sign', help='sign time-based EFI payload')
@@ -350,7 +363,11 @@ def main():
     signp.add_argument('--key', '-k', required=True, help='signing certificate filename in PEM format')
     signp.add_argument('--name', '-n', required=True, help='variable name')
     signp.add_argument('--attrs', '-a', help='variable attributes (values: nv,bs,rt,at,ro,aw)')
-    signp.add_argument('--guid', '-g', help="vendor GUID (default: %s)"%EFI_GLOBAL_VARIABLE_GUID)
+    signp.add_argument(
+        '--guid',
+        '-g',
+        help=f"vendor GUID (default: {EFI_GLOBAL_VARIABLE_GUID})",
+    )
     signp.add_argument('--type', '-t', required=True, help='variable type (values: file|u8|u16|u32|u64|str|nil)')
     signp.add_argument('--data', '-d', help='data or filename')
     signp.add_argument('--outfile', '-o', required=True, help='output filename of signed EFI payload')

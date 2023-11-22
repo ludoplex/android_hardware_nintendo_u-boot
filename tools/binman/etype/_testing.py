@@ -122,31 +122,16 @@ class Entry__testing(Entry):
         return True
 
     def GetOffsets(self):
-        if self.return_invalid_entry :
-            return {'invalid-entry': [1, 2]}
-        return {}
+        return {'invalid-entry': [1, 2]} if self.return_invalid_entry else {}
 
     def ProcessContents(self):
         data = self.contents
         if self.bad_update_contents:
             # Request to update the contents with something larger, to cause a
             # failure.
-            if self.bad_update_contents_twice:
-                data = self.data + b'a'
-            else:
-                data = b'aaa'
+            data = self.data + b'a' if self.bad_update_contents_twice else b'aaa'
             return self.ProcessContentsUpdate(data)
-        if self.bad_shrink_contents:
-            # Request to update the contents with something smaller, to cause a
-            # failure.
-            data = b'a'
-            return self.ProcessContentsUpdate(data)
-        if self.bad_shrink_contents:
-            # Request to update the contents with something smaller, to cause a
-            # failure.
-            data = b'a'
-            return self.ProcessContentsUpdate(data)
-        return True
+        return self.ProcessContentsUpdate(b'a') if self.bad_shrink_contents else True
 
     def ProcessFdt(self, fdt):
         """Force reprocessing the first time"""

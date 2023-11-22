@@ -9,7 +9,7 @@ from elftools.elf.elffile import ELFFile
 
 def usage(exit_code):
     print("usage:")
-    print(sys.argv[0] + " --arc-id 0x52 --image u-boot.bin --elf u-boot")
+    print(f"{sys.argv[0]} --arc-id 0x52 --image u-boot.bin --elf u-boot")
     sys.exit(exit_code)
 
 
@@ -28,15 +28,15 @@ def calc_check_sum(filename):
 
 def arg_verify(uboot_bin_filename, uboot_elf_filename, arc_id):
     if arc_id not in [0x52, 0x53, 0x54]:
-        print("unknown ARC ID: " + hex(arc_id))
+        print(f"unknown ARC ID: {hex(arc_id)}")
         sys.exit(2)
 
     if not os.path.isfile(uboot_bin_filename):
-        print("uboot bin file not exists: " + uboot_bin_filename)
+        print(f"uboot bin file not exists: {uboot_bin_filename}")
         sys.exit(2)
 
     if not os.path.isfile(uboot_elf_filename):
-        print("uboot elf file not exists: " + uboot_elf_filename)
+        print(f"uboot elf file not exists: {uboot_elf_filename}")
         sys.exit(2)
 
 
@@ -89,12 +89,14 @@ def main():
         file.write(image_copy_adr.to_bytes(4, byteorder='little'))
         file.write(magic1.to_bytes(5, byteorder='big'))
         file.write(jump_address.to_bytes(4, byteorder='little'))
-        for i in range(12): file.write(0xFF.to_bytes(1, byteorder='little'))
+        for _ in range(12):
+            file.write(0xFF.to_bytes(1, byteorder='little'))
         for byte in magic2: file.write(byte.to_bytes(36, byteorder='big'))
-        for i in range(208 - len(magic2) * 36):
+        for _ in range(208 - len(magic2) * 36):
             file.write(0xFF.to_bytes(1, byteorder='little'))
         file.write(flash_address.to_bytes(4, byteorder='little'))
-        for i in range(11): file.write(0xFF.to_bytes(1, byteorder='little'))
+        for _ in range(11):
+            file.write(0xFF.to_bytes(1, byteorder='little'))
         file.write(flash_type.to_bytes(1, byteorder='little'))
 
     # append u-boot image to header
@@ -112,12 +114,8 @@ def main():
     crc_store_adr = load_addr - 0x8
     crc_calc_adr = crc_store_adr - 0x4
     load_size = os.path.getsize(headerised_filename)
-    crc_calc_cmd = \
-        "crc32 " + hex(load_addr) + " " + hex(load_size) + " " + hex(crc_calc_adr)
-    crc_check_cmd = \
-        "mw.l " + hex(crc_store_adr) + " " + headerised_image_crc + " && " + \
-        crc_calc_cmd + " && " + \
-        "cmp.l " + hex(crc_store_adr) + " " + hex(crc_calc_adr) + " 1"
+    crc_calc_cmd = f"crc32 {hex(load_addr)} {hex(load_size)} {hex(crc_calc_adr)}"
+    crc_check_cmd = f"mw.l {hex(crc_store_adr)} {headerised_image_crc} && {crc_calc_cmd} && cmp.l {hex(crc_store_adr)} {hex(crc_calc_adr)} 1"
 
     # make errase size to be allighned by 64K
     if load_size & 0xFFFF == 0:
@@ -126,14 +124,20 @@ def main():
         errase_size = load_size - (load_size & 0xFFFF) + 0x10000
 
     # u-bood CMD to load u-bood with header to SPI flash
-    sf_load_image_cmd = \
-        "fatload mmc 0:1 " + hex(load_addr) + " " + headerised_filename + " && " + \
-        "sf probe 0:0 && " + \
-        crc_check_cmd + " && " + \
-        "sf protect unlock 0x0 " + hex(errase_size) + " && " + \
-        "sf erase 0x0 " + hex(errase_size) + " && " + \
-        "sf write " + hex(load_addr) + " 0x0 " + hex(load_size) + " && " + \
-        "sf protect lock 0x0 " + hex(errase_size)
+    sf_load_image_cmd = (
+        (
+            (
+                (
+                    f"fatload mmc 0:1 {hex(load_addr)} {headerised_filename} && sf probe 0:0 && {crc_check_cmd} && sf protect unlock 0x0 {hex(errase_size)} && sf erase 0x0 {hex(errase_size)} && sf write "
+                    + hex(load_addr)
+                )
+                + " 0x0 "
+            )
+            + hex(load_size)
+            + " && "
+        )
+        + "sf protect lock 0x0 "
+    ) + hex(errase_size)
 
     update_uboot_cmd = sf_load_image_cmd + " && echo \"u-boot update: OK\""
 

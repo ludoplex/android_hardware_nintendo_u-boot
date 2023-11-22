@@ -98,8 +98,12 @@ def test_efi_selftest_text_input(u_boot_console):
         raise Exception('\'a\' failed in \'text input\' test')
     u_boot_console.drain_console()
     # UP escape sequence
-    u_boot_console.run_command(cmd=chr(27) + '[A', wait_for_echo=False,
-                               send_nl=False, wait_for_prompt=False)
+    u_boot_console.run_command(
+        cmd=f'{chr(27)}[A',
+        wait_for_echo=False,
+        send_nl=False,
+        wait_for_prompt=False,
+    )
     if u_boot_console.p.expect([r'Unicode char 0 \(Null\), scan code 1 \(Up\)']):
         raise Exception('UP failed in \'text input\' test')
     u_boot_console.drain_console()
@@ -153,8 +157,12 @@ def test_efi_selftest_text_input_ex(u_boot_console):
         raise Exception('\'a\' failed in \'text input\' test')
     u_boot_console.drain_console()
     # UP escape sequence
-    u_boot_console.run_command(cmd=chr(27) + '[A', wait_for_echo=False,
-                               send_nl=False, wait_for_prompt=False)
+    u_boot_console.run_command(
+        cmd=f'{chr(27)}[A',
+        wait_for_echo=False,
+        send_nl=False,
+        wait_for_prompt=False,
+    )
     if u_boot_console.p.expect([r'Unicode char 0 \(Null\), scan code 1 \(\+Up\)']):
         raise Exception('UP failed in \'text input\' test')
     u_boot_console.drain_console()

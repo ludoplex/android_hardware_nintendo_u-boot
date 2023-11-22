@@ -28,14 +28,17 @@ class TestEfiSignedImageIntca(object):
         disk_img = efi_boot_env_intca
         with u_boot_console.log.section('Test Case 1a'):
             # Test Case 1a, with no Int CA and not authenticated by root CA
-            output = u_boot_console.run_command_list([
-                'host bind 0 %s' % disk_img,
-                'fatload host 0:1 4000000 db_c.auth',
-                'setenv -e -nv -bs -rt -at -i 4000000:$filesize db',
-                'fatload host 0:1 4000000 KEK.auth',
-                'setenv -e -nv -bs -rt -at -i 4000000:$filesize KEK',
-                'fatload host 0:1 4000000 PK.auth',
-                'setenv -e -nv -bs -rt -at -i 4000000:$filesize PK'])
+            output = u_boot_console.run_command_list(
+                [
+                    f'host bind 0 {disk_img}',
+                    'fatload host 0:1 4000000 db_c.auth',
+                    'setenv -e -nv -bs -rt -at -i 4000000:$filesize db',
+                    'fatload host 0:1 4000000 KEK.auth',
+                    'setenv -e -nv -bs -rt -at -i 4000000:$filesize KEK',
+                    'fatload host 0:1 4000000 PK.auth',
+                    'setenv -e -nv -bs -rt -at -i 4000000:$filesize PK',
+                ]
+            )
             assert 'Failed to set EFI variable' not in ''.join(output)
 
             output = u_boot_console.run_command_list([
@@ -61,12 +64,15 @@ class TestEfiSignedImageIntca(object):
         disk_img = efi_boot_env_intca
         with u_boot_console.log.section('Test Case 2a'):
             # Test Case 2a, unsigned and not authenticated by root CA
-            output = u_boot_console.run_command_list([
-                'host bind 0 %s' % disk_img,
-                'fatload host 0:1 4000000 KEK.auth',
-                'setenv -e -nv -bs -rt -at -i 4000000:$filesize KEK',
-                'fatload host 0:1 4000000 PK.auth',
-                'setenv -e -nv -bs -rt -at -i 4000000:$filesize PK'])
+            output = u_boot_console.run_command_list(
+                [
+                    f'host bind 0 {disk_img}',
+                    'fatload host 0:1 4000000 KEK.auth',
+                    'setenv -e -nv -bs -rt -at -i 4000000:$filesize KEK',
+                    'fatload host 0:1 4000000 PK.auth',
+                    'setenv -e -nv -bs -rt -at -i 4000000:$filesize PK',
+                ]
+            )
             assert 'Failed to set EFI variable' not in ''.join(output)
 
             output = u_boot_console.run_command_list([
@@ -103,16 +109,19 @@ class TestEfiSignedImageIntca(object):
         disk_img = efi_boot_env_intca
         with u_boot_console.log.section('Test Case 3a'):
             # Test Case 3a, revoked by int CA in dbx
-            output = u_boot_console.run_command_list([
-                'host bind 0 %s' % disk_img,
-                'fatload host 0:1 4000000 dbx_b.auth',
-                'setenv -e -nv -bs -rt -at -i 4000000:$filesize dbx',
-                'fatload host 0:1 4000000 db_c.auth',
-                'setenv -e -nv -bs -rt -at -i 4000000:$filesize db',
-                'fatload host 0:1 4000000 KEK.auth',
-                'setenv -e -nv -bs -rt -at -i 4000000:$filesize KEK',
-                'fatload host 0:1 4000000 PK.auth',
-                'setenv -e -nv -bs -rt -at -i 4000000:$filesize PK'])
+            output = u_boot_console.run_command_list(
+                [
+                    f'host bind 0 {disk_img}',
+                    'fatload host 0:1 4000000 dbx_b.auth',
+                    'setenv -e -nv -bs -rt -at -i 4000000:$filesize dbx',
+                    'fatload host 0:1 4000000 db_c.auth',
+                    'setenv -e -nv -bs -rt -at -i 4000000:$filesize db',
+                    'fatload host 0:1 4000000 KEK.auth',
+                    'setenv -e -nv -bs -rt -at -i 4000000:$filesize KEK',
+                    'fatload host 0:1 4000000 PK.auth',
+                    'setenv -e -nv -bs -rt -at -i 4000000:$filesize PK',
+                ]
+            )
             assert 'Failed to set EFI variable' not in ''.join(output)
 
             output = u_boot_console.run_command_list([
@@ -120,9 +129,9 @@ class TestEfiSignedImageIntca(object):
                 'efidebug boot next 1',
                 'efidebug test bootmgr'])
             assert 'Hello, world!' in ''.join(output)
-            # Or,
-            # assert '\'HELLO_abc\' failed' in ''.join(output)
-            # assert 'efi_start_image() returned: 26' in ''.join(output)
+                # Or,
+                # assert '\'HELLO_abc\' failed' in ''.join(output)
+                # assert 'efi_start_image() returned: 26' in ''.join(output)
 
         with u_boot_console.log.section('Test Case 3b'):
             # Test Case 3b, revoked by root CA in dbx

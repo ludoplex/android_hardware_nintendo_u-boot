@@ -124,10 +124,7 @@ def mmc_dev(u_boot_console, is_emmc, devid, partid):
         cmd += ' %d' % partid
     response = u_boot_console.run_command(cmd)
     assert 'no card present' not in response
-    if is_emmc:
-        partid_response = '(part %d)' % partid
-    else:
-        partid_response = ''
+    partid_response = '(part %d)' % partid if is_emmc else ''
     good_response = 'mmc%d%s is current device' % (devid, partid_response)
     assert good_response in response
 
@@ -206,13 +203,13 @@ def test_mmc_info(u_boot_console, env__mmc_dev_config):
     # Read MMC device information
     cmd = 'mmc info'
     response = u_boot_console.run_command(cmd)
-    good_response = "Device: %s" % info_device
+    good_response = f"Device: {info_device}"
     assert good_response in response
-    good_response = "Bus Speed: %s" % info_speed
+    good_response = f"Bus Speed: {info_speed}"
     assert good_response in response
-    good_response = "Mode: %s" % info_mode
+    good_response = f"Mode: {info_mode}"
     assert good_response in response
-    good_response = "Bus Width: %s" % info_buswidth
+    good_response = f"Bus Width: {info_buswidth}"
     assert good_response in response
 
 @pytest.mark.buildconfigspec('cmd_mmc')

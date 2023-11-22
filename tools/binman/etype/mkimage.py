@@ -168,7 +168,7 @@ class Entry_mkimage(Entry):
                 [self._imagename], 'mkimage-n', 1024)
             if image_data is None:
                 return False
-        outfile = self._filename if self._filename else 'mkimage-out.%s' % uniq
+        outfile = self._filename if self._filename else f'mkimage-out.{uniq}'
         output_fname = tools.get_output_filename(outfile)
 
         args = ['-d', input_fname]

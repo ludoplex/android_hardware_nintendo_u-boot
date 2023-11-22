@@ -35,7 +35,7 @@ class RegField:
             self.desc = []
 
     def Setup(self, cols):
-        self.bits, self.attr, self.reset_val = cols[0:3]
+        self.bits, self.attr, self.reset_val = cols[:3]
         if len(cols) > 3:
             self.desc.append(cols[3])
 
@@ -65,7 +65,7 @@ class Printer:
             self.output_footer()
 
     def output_header(self):
-        print('/* %s */' % self.name)
+        print(f'/* {self.name} */')
         print('enum {')
 
     def output_footer(self):
@@ -83,9 +83,6 @@ class Printer:
             field = field[:-6]
         elif field.endswith('_mode') or field.endswith('_mask'):
             field = field[:-5]
-        #else:
-            #print 'bad field %s' % field
-            #return
         field = field.upper()
         if ':' in regfield.bits:
             bit_high, bit_low = [int(x) for x in regfield.bits.split(':')]
@@ -103,8 +100,7 @@ class Printer:
         next_val = -1
         #print 'lines: %s', lines
         for line in lines:
-            m = self.re_sel.match(line)
-            if m:
+            if m := self.re_sel.match(line):
                 val, enum = int(m.group(1), 2), m.group(2)
                 if enum not in ['reserved', 'reserve']:
                     out_enum(field, enum, val, val == next_val)
@@ -125,14 +121,12 @@ def process_file(name, fd):
         return field
 
     def is_field_start(line):
-       if '=' in line or '+' in line:
-           return False
-       if (line.startswith('gpio') or line.startswith('peri_') or
-                line.endswith('_sel') or line.endswith('_con')):
-           return True
-       if not ' ' in line: # and '_' in line:
-           return True
-       return False
+        if '=' in line or '+' in line:
+            return False
+        if (line.startswith('gpio') or line.startswith('peri_') or
+                 line.endswith('_sel') or line.endswith('_con')):
+            return True
+        return ' ' not in line
 
     for line in fd:
         line = line.rstrip()
@@ -166,14 +160,10 @@ def process_file(name, fd):
             #print
 
 def out_enum(field, suffix, value, skip_val=False):
-    str = '%s_%s' % (field.upper(), suffix.upper())
+    str = f'{field.upper()}_{suffix.upper()}'
     if not skip_val:
         tabs = tab_to_col - len(str) / 8
-        if value > 9:
-            val_str = '%#x' % value
-        else:
-            val_str = '%d' % value
-
+        val_str = '%#x' % value if value > 9 else '%d' % value
         str += '%s= %s' % ('\t' * tabs, val_str)
     print('\t%s,' % str)
 
@@ -204,15 +194,5 @@ def process_csv(name, fd):
 fname = sys.argv[1]
 name = sys.argv[2]
 
-# Read output from pdftotext -layout
-if 1:
-    with open(fname, 'r') as fd:
-        process_file(name, fd)
-
-# Use tabula
-# It seems to be better at outputting text for an entire cell in one cell.
-# But it does not always work. E.g. GRF_GPIO7CH_IOMUX.
-# So there is no point in using it.
-if 0:
-    with open(fname, 'r') as fd:
-        process_csv(name, fd)
+with open(fname, 'r') as fd:
+    process_file(name, fd)

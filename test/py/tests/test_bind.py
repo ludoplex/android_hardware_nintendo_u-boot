@@ -11,19 +11,12 @@ def in_tree(response, name, uclass, drv, depth, last_child):
     leaf = ''
     if depth != 0:
         leaf = '   ' + '    ' * (depth - 1)
-        if not last_child:
-            leaf = leaf + r'\|'
-        else:
-            leaf = leaf + '`'
-
-    leaf = leaf + '-- ' + name
+        leaf += r'\|' if not last_child else '`'
+    leaf = f'{leaf}-- {name}'
     line = (r' *{:10.10} *[0-9]*  \[ [ +] \]   {:20.20}  [` |]{}$'
             .format(uclass, drv, leaf))
     prog = re.compile(line)
-    for l in lines:
-        if prog.match(l):
-            return True
-    return False
+    return any(prog.match(l) for l in lines)
 
 @pytest.mark.boardspec('sandbox')
 @pytest.mark.buildconfigspec('cmd_bind')
@@ -109,7 +102,7 @@ def get_next_line(tree, name):
     treelines = [x.strip() for x in tree.splitlines() if x.strip()]
     child_line = ''
     for idx, line in enumerate(treelines):
-        if '-- ' + name in line:
+        if f'-- {name}' in line:
             try:
                 child_line = treelines[idx+1]
             except:
@@ -134,7 +127,8 @@ def test_bind_unbind_with_uclass(u_boot_console):
 
     #bind simple_bus as a child of bind-test-child2
     response = u_boot_console.run_command(
-                    'bind  {} {} simple_bus'.format(child2_uclass, child2_index))
+        f'bind  {child2_uclass} {child2_index} simple_bus'
+    )
 
     #check that the child is there and its uclass/index pair is right
     tree = u_boot_console.run_command('dm tree')
@@ -146,7 +140,9 @@ def test_bind_unbind_with_uclass(u_boot_console):
     assert child_of_child2_index == child2_index + 1
 
     #unbind the child and check it has been removed
-    response = u_boot_console.run_command('unbind  simple_bus {}'.format(child_of_child2_index))
+    response = u_boot_console.run_command(
+        f'unbind  simple_bus {child_of_child2_index}'
+    )
     assert response == ''
     tree = u_boot_console.run_command('dm tree')
     assert in_tree(tree, 'bind-test-child2', 'simple_bus', 'simple_bus', 1, True)
@@ -156,7 +152,8 @@ def test_bind_unbind_with_uclass(u_boot_console):
 
     #bind simple_bus as a child of bind-test-child2
     response = u_boot_console.run_command(
-                    'bind  {} {} simple_bus'.format(child2_uclass, child2_index))
+        f'bind  {child2_uclass} {child2_index} simple_bus'
+    )
 
     #check that the child is there and its uclass/index pair is right
     tree = u_boot_console.run_command('dm tree')
@@ -170,7 +167,8 @@ def test_bind_unbind_with_uclass(u_boot_console):
 
     #unbind the child and check it has been removed
     response = u_boot_console.run_command(
-                    'unbind  {} {} simple_bus'.format(child2_uclass, child2_index))
+        f'unbind  {child2_uclass} {child2_index} simple_bus'
+    )
     assert response == ''
 
     tree = u_boot_console.run_command('dm tree')
@@ -182,7 +180,8 @@ def test_bind_unbind_with_uclass(u_boot_console):
     #unbind the child again and check it doesn't change the tree
     tree_old = u_boot_console.run_command('dm tree')
     response = u_boot_console.run_command(
-                    'unbind  {} {} simple_bus'.format(child2_uclass, child2_index))
+        f'unbind  {child2_uclass} {child2_index} simple_bus'
+    )
     tree_new = u_boot_console.run_command('dm tree')
 
     assert response == ''

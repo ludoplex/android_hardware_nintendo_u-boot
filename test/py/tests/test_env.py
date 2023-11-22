@@ -54,7 +54,7 @@ class StateTestEnv(object):
             response = self.u_boot_console.run_command('printenv')
         self.env = {}
         for l in response.splitlines():
-            if not '=' in l:
+            if '=' not in l:
                 continue
             (var, value) = l.split('=', 1)
             self.env[var] = value
@@ -84,7 +84,7 @@ class StateTestEnv(object):
 
         n = 0
         while True:
-            var = 'test_env_' + str(n)
+            var = f'test_env_{str(n)}'
             if var not in self.env:
                 return var
             n += 1
@@ -113,7 +113,7 @@ def unset_var(state_test_env, var):
         Nothing.
     """
 
-    state_test_env.u_boot_console.run_command('setenv %s' % var)
+    state_test_env.u_boot_console.run_command(f'setenv {var}')
     if var in state_test_env.env:
         del state_test_env.env[var]
 
@@ -141,7 +141,8 @@ def set_var(state_test_env, var, value):
             pytest.skip('Space in variable value on non-Hush shell')
 
     state_test_env.u_boot_console.run_command(
-        'setenv %s %s%s%s' % (var, quote, value, quote))
+        f'setenv {var} {quote}{value}{quote}'
+    )
     state_test_env.env[var] = value
 
 def validate_empty(state_test_env, var):
@@ -170,8 +171,8 @@ def validate_set(state_test_env, var, value):
 
     # echo does not preserve leading, internal, or trailing whitespace in the
     # value. printenv does, and hence allows more complete testing.
-    response = state_test_env.u_boot_console.run_command('printenv %s' % var)
-    assert response == ('%s=%s' % (var, value))
+    response = state_test_env.u_boot_console.run_command(f'printenv {var}')
+    assert response == f'{var}={value}'
 
 def test_env_echo_exists(state_test_env):
     """Test echoing a variable that exists."""
@@ -193,8 +194,8 @@ def test_env_printenv_non_existent(state_test_env):
     var = state_test_env.set_var
     c = state_test_env.u_boot_console
     with c.disable_check('error_notification'):
-        response = c.run_command('printenv %s' % var)
-    assert response == '## Error: "%s" not defined' % var
+        response = c.run_command(f'printenv {var}')
+    assert response == f'## Error: "{var}" not defined'
 
 @pytest.mark.buildconfigspec('cmd_echo')
 def test_env_unset_non_existent(state_test_env):
@@ -258,7 +259,7 @@ def test_env_import_checksum_no_size(state_test_env):
     addr = '%08x' % ram_base
 
     with c.disable_check('error_notification'):
-        response = c.run_command('env import -c %s -' % addr)
+        response = c.run_command(f'env import -c {addr} -')
     assert response == '## Error: external checksum format must pass size'
 
 @pytest.mark.buildconfigspec('cmd_importenv')
@@ -271,7 +272,7 @@ def test_env_import_whitelist_checksum_no_size(state_test_env):
     addr = '%08x' % ram_base
 
     with c.disable_check('error_notification'):
-        response = c.run_command('env import -c %s - foo1 foo2 foo4' % addr)
+        response = c.run_command(f'env import -c {addr} - foo1 foo2 foo4')
     assert response == '## Error: external checksum format must pass size'
 
 @pytest.mark.buildconfigspec('cmd_exportenv')
@@ -286,7 +287,7 @@ def test_env_import_whitelist(state_test_env):
     set_var(state_test_env, 'foo2', 'bar2')
     set_var(state_test_env, 'foo3', 'bar3')
 
-    c.run_command('env export %s' % addr)
+    c.run_command(f'env export {addr}')
 
     unset_var(state_test_env, 'foo1')
     set_var(state_test_env, 'foo2', 'test2')
@@ -294,7 +295,7 @@ def test_env_import_whitelist(state_test_env):
 
     # no foo1 in current env, foo2 overridden, foo3 should be of the value
     # before exporting and foo4 should be of the value before importing.
-    c.run_command('env import %s - foo1 foo2 foo4' % addr)
+    c.run_command(f'env import {addr} - foo1 foo2 foo4')
 
     validate_set(state_test_env, 'foo1', 'bar1')
     validate_set(state_test_env, 'foo2', 'bar2')
@@ -323,7 +324,7 @@ def test_env_import_whitelist_delete(state_test_env):
     set_var(state_test_env, 'foo2', 'bar2')
     set_var(state_test_env, 'foo3', 'bar3')
 
-    c.run_command('env export %s' % addr)
+    c.run_command(f'env export {addr}')
 
     unset_var(state_test_env, 'foo1')
     set_var(state_test_env, 'foo2', 'test2')
@@ -331,7 +332,7 @@ def test_env_import_whitelist_delete(state_test_env):
 
     # no foo1 in current env, foo2 overridden, foo3 should be of the value
     # before exporting and foo4 should be empty.
-    c.run_command('env import -d %s - foo1 foo2 foo4' % addr)
+    c.run_command(f'env import -d {addr} - foo1 foo2 foo4')
 
     validate_set(state_test_env, 'foo1', 'bar1')
     validate_set(state_test_env, 'foo2', 'bar2')
@@ -360,8 +361,6 @@ def test_env_info(state_test_env):
         elif 'env_ready =' in l or 'env_use_default =' in l:
             assert '= true' in l or '= false' in l
             nb_line += 1
-        else:
-            assert True
     assert nb_line == 3
 
     response = c.run_command('env info -p -d')
@@ -413,22 +412,22 @@ def mk_env_ext4(state_test_env):
     """Create a empty ext4 file system volume."""
     c = state_test_env.u_boot_console
     filename = 'env.ext4.img'
-    persistent = c.config.persistent_data_dir + '/' + filename
-    fs_img = c.config.result_dir  + '/' + filename
+    persistent = f'{c.config.persistent_data_dir}/{filename}'
+    fs_img = f'{c.config.result_dir}/{filename}'
 
     if os.path.exists(persistent):
-        c.log.action('Disk image file ' + persistent + ' already exists')
+        c.log.action(f'Disk image file {persistent} already exists')
     else:
         # Some distributions do not add /sbin to the default PATH, where mkfs.ext4 lives
-        os.environ["PATH"] += os.pathsep + '/sbin'
+        os.environ["PATH"] += f'{os.pathsep}/sbin'
         try:
-            u_boot_utils.run_and_log(c, 'dd if=/dev/zero of=%s bs=1M count=16' % persistent)
-            u_boot_utils.run_and_log(c, 'mkfs.ext4 %s' % persistent)
-            sb_content = u_boot_utils.run_and_log(c, 'tune2fs -l %s' % persistent)
+            u_boot_utils.run_and_log(c, f'dd if=/dev/zero of={persistent} bs=1M count=16')
+            u_boot_utils.run_and_log(c, f'mkfs.ext4 {persistent}')
+            sb_content = u_boot_utils.run_and_log(c, f'tune2fs -l {persistent}')
             if 'metadata_csum' in sb_content:
-                u_boot_utils.run_and_log(c, 'tune2fs -O ^metadata_csum %s' % persistent)
+                u_boot_utils.run_and_log(c, f'tune2fs -O ^metadata_csum {persistent}')
         except CalledProcessError:
-            call('rm -f %s' % persistent, shell=True)
+            call(f'rm -f {persistent}', shell=True)
             raise
 
     u_boot_utils.run_and_log(c, ['cp',  '-f', persistent, fs_img])
@@ -448,7 +447,7 @@ def test_env_ext4(state_test_env):
     try:
         fs_img = mk_env_ext4(state_test_env)
 
-        c.run_command('host bind 0  %s' % fs_img)
+        c.run_command(f'host bind 0  {fs_img}')
 
         response = c.run_command('ext4ls host 0:0')
         assert 'uboot.env' not in response
@@ -519,7 +518,7 @@ def test_env_ext4(state_test_env):
 
     finally:
         if fs_img:
-            call('rm -f %s' % fs_img, shell=True)
+            call(f'rm -f {fs_img}', shell=True)
 
 def test_env_text(u_boot_console):
     """Test the script that converts the environment to a text file"""

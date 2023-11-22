@@ -99,9 +99,7 @@ def GetFdtForEtype(etype):
         Fdt object associated with the entry type
     """
     value = output_fdt_info.get(etype);
-    if not value:
-        return None
-    return value[0]
+    return None if not value else value[0]
 
 def GetFdtPath(etype):
     """Get the full pathname of a particular Fdt object
@@ -176,7 +174,7 @@ def SetEntryArgs(args):
         for arg in args:
             m = re.match('([^=]*)=(.*)', arg)
             if not m:
-                raise ValueError("Invalid entry arguemnt '%s'" % arg)
+                raise ValueError(f"Invalid entry arguemnt '{arg}'")
             name, value = m.groups()
             tout.debug('   %20s = %s' % (name, value))
             entry_args[name] = value
@@ -239,8 +237,7 @@ def Prepare(images, dtb):
             infile = tools.get_input_filename(fname, allow_missing=True)
             if infile and os.path.exists(infile):
                 fname_dtb = fdt_util.EnsureCompiled(infile)
-                out_fname = tools.get_output_filename('%s.out' %
-                        os.path.split(fname)[1])
+                out_fname = tools.get_output_filename(f'{os.path.split(fname)[1]}.out')
                 tools.write_file(out_fname, tools.read_file(fname_dtb))
                 other_dtb = fdt.FdtScan(out_fname)
                 output_fdt_info[etype] = [other_dtb, out_fname]
@@ -269,12 +266,13 @@ def PrepareFromLoadedData(image):
     fdt_path_prefix = ''
     output_fdt_info['fdtmap'] = [image.fdtmap_dtb, 'u-boot.dtb']
     main_dtb = None
-    tout.info("   Found device tree type 'fdtmap' '%s'" % image.fdtmap_dtb.name)
+    tout.info(f"   Found device tree type 'fdtmap' '{image.fdtmap_dtb.name}'")
     for etype, value in image.GetFdts().items():
         entry, fname = value
-        out_fname = tools.get_output_filename('%s.dtb' % entry.etype)
-        tout.info("   Found device tree type '%s' at '%s' path '%s'" %
-                  (etype, out_fname, entry.GetPath()))
+        out_fname = tools.get_output_filename(f'{entry.etype}.dtb')
+        tout.info(
+            f"   Found device tree type '{etype}' at '{out_fname}' path '{entry.GetPath()}'"
+        )
         entry._filename = entry.GetDefaultFilename()
         data = entry.ReadData()
 
@@ -283,10 +281,10 @@ def PrepareFromLoadedData(image):
         dtb.Scan()
         image_node = dtb.GetNode('/binman')
         if 'multiple-images' in image_node.props:
-            image_node = dtb.GetNode('/binman/%s' % image.image_node)
+            image_node = dtb.GetNode(f'/binman/{image.image_node}')
         fdt_path_prefix = image_node.path
         output_fdt_info[etype] = [dtb, None]
-    tout.info("   FDT path prefix '%s'" % fdt_path_prefix)
+    tout.info(f"   FDT path prefix '{fdt_path_prefix}'")
 
 
 def GetAllFdts():
@@ -324,8 +322,7 @@ def GetUpdateNodes(node, for_repack=False):
         if dtb != node.GetFdt():
             if for_repack and entry_type != 'u-boot-dtb':
                 continue
-            other_node = dtb.GetNode(fdt_path_prefix + node.path)
-            if other_node:
+            if other_node := dtb.GetNode(fdt_path_prefix + node.path):
                 yield other_node
 
 def AddZeroProp(node, prop, for_repack=False):
@@ -390,21 +387,19 @@ def SetInt(node, prop, value, for_repack=False):
         n.SetInt(prop, value)
 
 def CheckAddHashProp(node):
-    hash_node = node.FindNode('hash')
-    if hash_node:
+    if hash_node := node.FindNode('hash'):
         algo = hash_node.props.get('algo')
         if not algo:
             return "Missing 'algo' property for hash node"
         if algo.value == 'sha256':
             size = 32
         else:
-            return "Unknown hash algorithm '%s'" % algo.value
+            return f"Unknown hash algorithm '{algo.value}'"
         for n in GetUpdateNodes(hash_node):
             n.AddEmptyProp('value', size)
 
 def CheckSetHashValue(node, get_data_func):
-    hash_node = node.FindNode('hash')
-    if hash_node:
+    if hash_node := node.FindNode('hash'):
         algo = hash_node.props.get('algo').value
         if algo == 'sha256':
             m = hashlib.sha256()
@@ -529,8 +524,8 @@ def GetVersion(path=OUR_PATH):
         str: String version, e.g. 'v2021.10'
     """
     version_fname = os.path.join(path, 'version')
-    if os.path.exists(version_fname):
-        version = tools.read_file(version_fname, binary=False)
-    else:
-        version = '(unreleased)'
-    return version
+    return (
+        tools.read_file(version_fname, binary=False)
+        if os.path.exists(version_fname)
+        else '(unreleased)'
+    )

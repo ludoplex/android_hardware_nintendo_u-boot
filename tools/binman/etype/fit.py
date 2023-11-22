@@ -507,7 +507,7 @@ class Entry_fit(Entry_section):
                 # Generate nodes for each FDT
                 for seq, fdt_fname in enumerate(self._fdts):
                     node_name = node.name[1:].replace('SEQ', str(seq + 1))
-                    fname = tools.get_input_filename(fdt_fname + '.dtb')
+                    fname = tools.get_input_filename(f'{fdt_fname}.dtb')
                     with fsw.add_node(node_name):
                         for pname, prop in node.props.items():
                             if pname == 'fit,loadables':
@@ -552,29 +552,30 @@ class Entry_fit(Entry_section):
             """
             # If any pieces are missing, skip this. The missing entries will
             # show an error
-            if not missing:
-                try:
-                    segments, entry = elf.read_loadable_segments(elf_data)
-                except ValueError as exc:
-                    self._raise_subnode(node,
-                                        f'Failed to read ELF file: {str(exc)}')
-                for (seq, start, data) in segments:
-                    node_name = node.name[1:].replace('SEQ', str(seq + 1))
-                    with fsw.add_node(node_name):
-                        loadables.append(node_name)
-                        for pname, prop in node.props.items():
-                            if not pname.startswith('fit,'):
-                                fsw.property(pname, prop.bytes)
-                            elif pname == 'fit,load':
-                                fsw.property_u32('load', start)
-                            elif pname == 'fit,entry':
-                                if seq == 0:
-                                    fsw.property_u32('entry', entry)
-                            elif pname == 'fit,data':
-                                fsw.property('data', bytes(data))
-                            elif pname != 'fit,operation':
-                                self._raise_subnode(
-                                    node, f"Unknown directive '{pname}'")
+            if missing:
+                return
+            try:
+                segments, entry = elf.read_loadable_segments(elf_data)
+            except ValueError as exc:
+                self._raise_subnode(node,
+                                    f'Failed to read ELF file: {str(exc)}')
+            for (seq, start, data) in segments:
+                node_name = node.name[1:].replace('SEQ', str(seq + 1))
+                with fsw.add_node(node_name):
+                    loadables.append(node_name)
+                    for pname, prop in node.props.items():
+                        if not pname.startswith('fit,'):
+                            fsw.property(pname, prop.bytes)
+                        elif pname == 'fit,load':
+                            fsw.property_u32('load', start)
+                        elif pname == 'fit,entry':
+                            if seq == 0:
+                                fsw.property_u32('entry', entry)
+                        elif pname == 'fit,data':
+                            fsw.property('data', bytes(data))
+                        elif pname != 'fit,operation':
+                            self._raise_subnode(
+                                node, f"Unknown directive '{pname}'")
 
         def _gen_node(base_node, node, depth, in_images, entry):
             """Generate nodes from a template
@@ -638,8 +639,11 @@ class Entry_fit(Entry_section):
 
             for subnode in node.subnodes:
                 subnode_path = f'{rel_path}/{subnode.name}'
-                if has_images and not (subnode.name.startswith('hash') or
-                                       subnode.name.startswith('signature')):
+                if (
+                    has_images
+                    and not subnode.name.startswith('hash')
+                    and not subnode.name.startswith('signature')
+                ):
                     # This subnode is a content node not meant to appear in
                     # the FIT (e.g. "/images/kernel/u-boot"), so don't call
                     # fsw.add_node() or _add_node() for it.

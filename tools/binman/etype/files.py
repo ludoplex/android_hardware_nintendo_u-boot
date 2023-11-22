@@ -51,7 +51,7 @@ class Entry_files(Entry_section):
     def gen_entries(self):
         files = tools.get_input_filename_glob(self._pattern)
         if self._require_matches and not files:
-            self.Raise("Pattern '%s' matched no files" % self._pattern)
+            self.Raise(f"Pattern '{self._pattern}' matched no files")
         for fname in files:
             if not os.path.isfile(fname):
                 continue

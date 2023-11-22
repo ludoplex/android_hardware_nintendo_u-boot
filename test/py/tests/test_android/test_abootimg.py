@@ -74,24 +74,21 @@ class AbootimgTestDiskImage(object):
             Nothing.
         """
 
-        gz_hex = u_boot_console.config.persistent_data_dir + '/boot.img.gz.hex'
-        gz = u_boot_console.config.persistent_data_dir + '/boot.img.gz'
+        gz_hex = f'{u_boot_console.config.persistent_data_dir}/boot.img.gz.hex'
+        gz = f'{u_boot_console.config.persistent_data_dir}/boot.img.gz'
 
         filename = 'boot.img'
-        persistent = u_boot_console.config.persistent_data_dir + '/' + filename
-        self.path = u_boot_console.config.result_dir  + '/' + filename
+        persistent = f'{u_boot_console.config.persistent_data_dir}/{filename}'
+        self.path = f'{u_boot_console.config.result_dir}/{filename}'
 
         with u_boot_utils.persistent_file_helper(u_boot_console.log, persistent):
             if os.path.exists(persistent):
-                u_boot_console.log.action('Disk image file ' + persistent +
-                    ' already exists')
+                u_boot_console.log.action(f'Disk image file {persistent} already exists')
             else:
-                u_boot_console.log.action('Generating ' + persistent)
+                u_boot_console.log.action(f'Generating {persistent}')
 
-                f = open(gz_hex, "w")
-                f.write(img_hex)
-                f.close()
-
+                with open(gz_hex, "w") as f:
+                    f.write(img_hex)
                 cmd = ('xxd', '-r', '-p', gz_hex, gz)
                 u_boot_utils.run_and_log(u_boot_console, cmd)
 

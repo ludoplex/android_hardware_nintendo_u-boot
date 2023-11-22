@@ -15,9 +15,8 @@ def generate_file(name, size):
     Generates a file filled with 'x'.
     """
     content = 'x' * size
-    file = open(name, 'w')
-    file.write(content)
-    file.close()
+    with open(name, 'w') as file:
+        file.write(content)
 
 def make_erofs_image(build_dir):
     """
@@ -53,8 +52,12 @@ def make_erofs_image(build_dir):
     input_path = os.path.join(build_dir, EROFS_SRC_DIR)
     output_path = os.path.join(build_dir, EROFS_IMAGE_NAME)
     args = ' '.join([output_path, input_path])
-    subprocess.run(['mkfs.erofs -zlz4 ' + args], shell=True, check=True,
-                   stdout=subprocess.DEVNULL)
+    subprocess.run(
+        [f'mkfs.erofs -zlz4 {args}'],
+        shell=True,
+        check=True,
+        stdout=subprocess.DEVNULL,
+    )
 
 def clean_erofs_image(build_dir):
     """
@@ -116,19 +119,24 @@ def erofs_load_files(u_boot_console, files, sizes, address):
     """
     build_dir = u_boot_console.config.build_dir
     for (file, size) in zip(files, sizes):
-        out = u_boot_console.run_command('erofsload host 0 {} {}'.format(address, file))
+        out = u_boot_console.run_command(f'erofsload host 0 {address} {file}')
 
         # check if the right amount of bytes was read
         assert size in out
 
         # calculate u-boot file's checksum
-        out = u_boot_console.run_command('md5sum {} {}'.format(address, hex(int(size))))
+        out = u_boot_console.run_command(f'md5sum {address} {hex(int(size))}')
         u_boot_checksum = out.split()[-1]
 
         # calculate original file's checksum
-        original_file_path = os.path.join(build_dir, EROFS_SRC_DIR + '/' + file)
-        out = subprocess.run(['md5sum ' + original_file_path], shell=True, check=True,
-                             capture_output=True, text=True)
+        original_file_path = os.path.join(build_dir, f'{EROFS_SRC_DIR}/{file}')
+        out = subprocess.run(
+            [f'md5sum {original_file_path}'],
+            shell=True,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
         original_checksum = out.stdout.split()[0]
 
         # compare checksum
@@ -167,7 +175,7 @@ def erofs_load_non_existent_file(u_boot_console):
     """
     address = '$kernel_addr_r'
     file = 'non-existent'
-    out = u_boot_console.run_command('erofsload host 0 {} {}'.format(address, file))
+    out = u_boot_console.run_command(f'erofsload host 0 {address} {file}')
     assert 'Failed to load' in out
 
 def erofs_run_all_tests(u_boot_console):
@@ -189,7 +197,6 @@ def erofs_run_all_tests(u_boot_console):
 @pytest.mark.buildconfigspec('fs_erofs')
 @pytest.mark.requiredtool('mkfs.erofs')
 @pytest.mark.requiredtool('md5sum')
-
 def test_erofs(u_boot_console):
     """
     Executes the erofs test suite.
@@ -200,7 +207,7 @@ def test_erofs(u_boot_console):
         # setup test environment
         make_erofs_image(build_dir)
         image_path = os.path.join(build_dir, EROFS_IMAGE_NAME)
-        u_boot_console.run_command('host bind 0 {}'.format(image_path))
+        u_boot_console.run_command(f'host bind 0 {image_path}')
         # run all tests
         erofs_run_all_tests(u_boot_console)
     except:

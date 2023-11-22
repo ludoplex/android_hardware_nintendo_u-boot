@@ -126,7 +126,7 @@ def test_sqfs_ls(u_boot_console):
     for image in STANDARD_TABLE:
         try:
             image_path = os.path.join(build_dir, image)
-            u_boot_console.run_command('host bind 0 {}'.format(image_path))
+            u_boot_console.run_command(f'host bind 0 {image_path}')
             sqfs_run_all_ls_tests(u_boot_console)
         except:
             clean_all_images(build_dir)

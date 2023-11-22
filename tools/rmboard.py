@@ -49,7 +49,7 @@ def rm_kconfig_include(path):
         return
     fname = stdout.split(':')[0]
 
-    print("Fixing up '%s' to remove reference to '%s'" % (fname, path))
+    print(f"Fixing up '{fname}' to remove reference to '{path}'")
     cmd = ['sed', '-i', '\|%s|d' % path, fname]
     stdout = command.run_pipe([cmd], capture=True).stdout
 
@@ -101,7 +101,7 @@ def rm_board(board):
             path = path[:-1]
         if '*' in path:
             globbed = glob.glob(path)
-            print("Expanded '%s' to '%s'" % (path, globbed))
+            print(f"Expanded '{path}' to '{globbed}'")
             real += globbed
         else:
             real.append(path)

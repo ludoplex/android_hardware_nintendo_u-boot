@@ -30,7 +30,8 @@ class Entry_blob_named_by_arg(Entry_blob):
     """
     def __init__(self, section, etype, node, blob_fname, required=False):
         super().__init__(section, etype, node)
-        filename, = self.GetEntryArgsOrProps(
-            [EntryArg('%s-path' % blob_fname, str)], required=required)
+        (filename,) = self.GetEntryArgsOrProps(
+            [EntryArg(f'{blob_fname}-path', str)], required=required
+        )
         if filename:
             self._filename = filename

@@ -66,7 +66,7 @@ class KernelDocDirective(Directive):
 	# Sphinx versions
         cmd += ['-sphinx-version', sphinx.__version__]
 
-        filename = env.config.kerneldoc_srctree + '/' + self.arguments[0]
+        filename = f'{env.config.kerneldoc_srctree}/{self.arguments[0]}'
         export_file_patterns = []
 
         # Tell sphinx of the dependency
@@ -88,21 +88,19 @@ class KernelDocDirective(Directive):
         elif 'doc' in self.options:
             cmd += ['-function', str(self.options.get('doc'))]
         elif 'identifiers' in self.options:
-            identifiers = self.options.get('identifiers').split()
-            if identifiers:
+            if identifiers := self.options.get('identifiers').split():
                 for i in identifiers:
                     cmd += ['-function', i]
             else:
                 cmd += ['-no-doc-sections']
 
         if 'no-identifiers' in self.options:
-            no_identifiers = self.options.get('no-identifiers').split()
-            if no_identifiers:
+            if no_identifiers := self.options.get('no-identifiers').split():
                 for i in no_identifiers:
                     cmd += ['-nosymbol', i]
 
         for pattern in export_file_patterns:
-            for f in glob.glob(env.config.kerneldoc_srctree + '/' + pattern):
+            for f in glob.glob(f'{env.config.kerneldoc_srctree}/{pattern}'):
                 env.note_dependency(os.path.abspath(f))
                 cmd += ['-export-file', f]
 
@@ -132,14 +130,12 @@ class KernelDocDirective(Directive):
             lineoffset = 0;
             line_regex = re.compile("^#define LINENO ([0-9]+)$")
             for line in lines:
-                match = line_regex.search(line)
-                if match:
+                if match := line_regex.search(line):
                     # sphinx counts lines from 0
                     lineoffset = int(match.group(1)) - 1
-                    # we must eat our comments since the upset the markup
                 else:
-                    doc = env.srcdir + "/" + env.docname + ":" + str(self.lineno)
-                    result.append(line, doc + ": " + filename, lineoffset)
+                    doc = f"{env.srcdir}/{env.docname}:{str(self.lineno)}"
+                    result.append(line, f"{doc}: {filename}", lineoffset)
                     lineoffset += 1
 
             node = nodes.section()

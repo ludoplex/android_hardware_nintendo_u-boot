@@ -123,6 +123,4 @@ class Bintoollz4(bintool.Bintool):
         Raises:
             Valuerror: Fetching could not be completed
         """
-        if method != bintool.FETCH_BIN:
-            return None
-        return self.apt_install('lz4')
+        return None if method != bintool.FETCH_BIN else self.apt_install('lz4')

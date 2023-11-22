@@ -72,7 +72,6 @@ class Entry_text(Entry):
 
     def ObtainContents(self):
         if not self.value:
-            self.Raise("No value provided for text label '%s'" %
-                       self.text_label)
+            self.Raise(f"No value provided for text label '{self.text_label}'")
         self.SetContents(self.value)
         return True

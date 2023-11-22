@@ -174,13 +174,12 @@ class Entry_section(Entry):
         if self._end_4gb:
             if not self.size:
                 self.Raise("Section size must be provided when using end-at-4gb")
-            if self._skip_at_start is not None:
-                self.Raise("Provide either 'end-at-4gb' or 'skip-at-start'")
-            else:
-                self._skip_at_start = 0x100000000 - self.size
-        else:
             if self._skip_at_start is None:
-                self._skip_at_start = 0
+                self._skip_at_start = 0x100000000 - self.size
+            else:
+                self.Raise("Provide either 'end-at-4gb' or 'skip-at-start'")
+        elif self._skip_at_start is None:
+            self._skip_at_start = 0
         self._name_prefix = fdt_util.GetString(self._node, 'name-prefix')
         self.align_default = fdt_util.GetInt(self._node, 'align-default', 0)
 
@@ -205,7 +204,7 @@ class Entry_section(Entry):
         Raises:
             ValueError: always
         """
-        raise ValueError("Section '%s': %s" % (self._node.path, msg))
+        raise ValueError(f"Section '{self._node.path}': {msg}")
 
     def GetFdts(self):
         fdts = {}
@@ -220,17 +219,15 @@ class Entry_section(Entry):
         may involve adding or deleting properties.
         """
         todo = self._entries.values()
-        for passnum in range(3):
-            next_todo = []
-            for entry in todo:
-                if not entry.ProcessFdt(fdt):
-                    next_todo.append(entry)
+        for _ in range(3):
+            next_todo = [entry for entry in todo if not entry.ProcessFdt(fdt)]
             todo = next_todo
             if not todo:
                 break
         if todo:
-            self.Raise('Internal error: Could not complete processing of Fdt: remaining %s' %
-                       todo)
+            self.Raise(
+                f'Internal error: Could not complete processing of Fdt: remaining {todo}'
+            )
         return True
 
     def gen_entries(self):
@@ -281,7 +278,7 @@ class Entry_section(Entry):
         if entry.size:
             data += tools.get_bytes(pad_byte, entry.size - len(data))
 
-        self.Detail('GetPaddedDataForEntry: size %s' % to_hex_size(self.data))
+        self.Detail(f'GetPaddedDataForEntry: size {to_hex_size(self.data)}')
 
         return data
 
@@ -507,7 +504,7 @@ class Entry_section(Entry):
             source_entry.Raise("Cannot find node for phandle %d" % phandle)
         entry = self.FindEntryByNode(node)
         if not entry:
-            source_entry.Raise("Cannot find entry for node '%s'" % node.name)
+            source_entry.Raise(f"Cannot find entry for node '{node.name}'")
         return entry.GetData(required)
 
     def LookupSymbol(self, sym_name, optional, msg, base_addr, entries=None):
@@ -549,8 +546,7 @@ class Entry_section(Entry):
         """
         m = re.match(r'^_binman_(\w+)_prop_(\w+)$', sym_name)
         if not m:
-            raise ValueError("%s: Symbol '%s' has invalid format" %
-                             (msg, sym_name))
+            raise ValueError(f"{msg}: Symbol '{sym_name}' has invalid format")
         entry_name, prop_name = m.groups()
         entry_name = entry_name.replace('_', '-')
         if not entries:
@@ -565,10 +561,9 @@ class Entry_section(Entry):
                         if rest in ['', '-img', '-nodtb']:
                             entry = entries[name]
         if not entry:
-            err = ("%s: Entry '%s' not found in list (%s)" %
-                   (msg, entry_name, ','.join(entries.keys())))
+            err = f"{msg}: Entry '{entry_name}' not found in list ({','.join(entries.keys())})"
             if optional:
-                print('Warning: %s' % err, file=sys.stderr)
+                print(f'Warning: {err}', file=sys.stderr)
                 return None
             raise ValueError(err)
         if prop_name == 'offset':
@@ -581,7 +576,7 @@ class Entry_section(Entry):
         if prop_name == 'size':
             return entry.size
         else:
-            raise ValueError("%s: No such property '%s'" % (msg, prop_name))
+            raise ValueError(f"{msg}: No such property '{prop_name}'")
 
     def GetRootSkipAtStart(self):
         """Get the skip-at-start value for the top-level section
@@ -625,10 +620,10 @@ class Entry_section(Entry):
         Returns:
             entry matching that type, or None if not found
         """
-        for entry in self._entries.values():
-            if entry.etype == etype:
-                return entry
-        return None
+        return next(
+            (entry for entry in self._entries.values() if entry.etype == etype),
+            None,
+        )
 
     def GetEntryContents(self, skip_entry=None):
         """Call ObtainContents() for each entry in the section
@@ -672,8 +667,9 @@ class Entry_section(Entry):
                 break
 
         if todo:
-            self.Raise('Internal error: Could not complete processing of contents: remaining %s' %
-                       todo)
+            self.Raise(
+                f'Internal error: Could not complete processing of contents: remaining {todo}'
+            )
         return True
 
     def _SetEntryOffsetSize(self, name, offset, size):
@@ -686,8 +682,7 @@ class Entry_section(Entry):
         """
         entry = self._entries.get(name)
         if not entry:
-            self._Raise("Unable to set offset/size for unknown entry '%s'" %
-                        name)
+            self._Raise(f"Unable to set offset/size for unknown entry '{name}'")
         entry.SetOffsetSize(self._skip_at_start + offset if offset is not None
                             else None, size)
 
@@ -743,9 +738,7 @@ class Entry_section(Entry):
         Returns:
             Image object containing this section
         """
-        if not self.section:
-            return self
-        return self.section.GetImage()
+        return self if not self.section else self.section.GetImage()
 
     def GetSort(self):
         """Check if the entries in this section will be sorted
@@ -757,7 +750,7 @@ class Entry_section(Entry):
         return self._sort
 
     def ReadData(self, decomp=True, alt_format=None):
-        tout.info("ReadData path='%s'" % self.GetPath())
+        tout.info(f"ReadData path='{self.GetPath()}'")
         parent_data = self.section.ReadData(True, alt_format)
         offset = self.offset - self.section._skip_at_start
         data = parent_data[offset:offset + self.size]
@@ -868,8 +861,7 @@ class Entry_section(Entry):
             add_entry: Entry to add
         """
         entries[add_entry.GetPath()] = add_entry
-        to_add = add_entry.GetEntries()
-        if to_add:
+        if to_add := add_entry.GetEntries():
             for entry in to_add.values():
                 entries[entry.GetPath()] = entry
             for entry in to_add.values():

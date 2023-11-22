@@ -126,7 +126,7 @@ def append_conf_node(file, dtbs, segments):
 def generate_atf_fit_dts_uboot(fit_file, uboot_file_name):
     segments = unpack_elf(uboot_file_name)
     if len(segments) != 1:
-        raise ValueError("Invalid u-boot ELF image '%s'" % uboot_file_name)
+        raise ValueError(f"Invalid u-boot ELF image '{uboot_file_name}'")
     index, entry, p_paddr, data = segments[0]
     fit_file.write(DT_UBOOT % p_paddr)
 
@@ -140,7 +140,7 @@ def generate_atf_fit_dts_bl31(fit_file, bl31_file_name, tee_file_name, dtbs_file
         tee_segments = unpack_tee_file(tee_file_name)
         for index, entry, paddr, data in tee_segments:
             append_tee_node(fit_file, num_segments + index + 1, paddr, entry)
-        num_segments = num_segments + len(tee_segments)
+        num_segments += len(tee_segments)
 
     append_fdt_node(fit_file, dtbs_file_name)
     fit_file.write(DT_IMAGES_NODE_END)
@@ -177,8 +177,8 @@ def generate_tee_binary(tee_file_name):
 def unpack_elf(filename):
     with open(filename, 'rb') as file:
         elf = file.read()
-    if elf[0:7] != b'\x7fELF\x02\x01\x01' or elf[18:20] != b'\xb7\x00':
-        raise ValueError("Invalid arm64 ELF file '%s'" % filename)
+    if elf[:7] != b'\x7fELF\x02\x01\x01' or elf[18:20] != b'\xb7\x00':
+        raise ValueError(f"Invalid arm64 ELF file '{filename}'")
 
     e_entry, e_phoff = struct.unpack_from('<2Q', elf, 0x18)
     e_phentsize, e_phnum = struct.unpack_from('<2H', elf, 0x36)
@@ -199,25 +199,23 @@ def unpack_tee_file(filename):
         return unpack_elf(filename)
     with open(filename, 'rb') as file:
         bin = file.read()
-    segments = []
-    if bin[0:5] == b'OPTE\x01':
-        # OP-TEE v1 format (tee.bin)
-        init_sz, start_hi, start_lo, _, paged_sz = struct.unpack_from('<5I',
-                                                                      bin,
-                                                                      0x8)
-        if paged_sz != 0:
-            raise ValueError("OP-TEE paged mode not supported")
-        e_entry = (start_hi << 32) + start_lo
-        p_addr = e_entry
-        p_data = bin[0x1c:]
-        if len(p_data) != init_sz:
-            raise ValueError("Invalid file '%s': size mismatch "
-                             "(expected %d, have %d)" % (filename, init_sz,
-                                                         len(p_data)))
-        segments.append((0, e_entry, p_addr, p_data))
+    if bin[:5] != b'OPTE\x01':
+        raise ValueError(f"Unknown format for TEE file '{filename}'")
+    # OP-TEE v1 format (tee.bin)
+    init_sz, start_hi, start_lo, _, paged_sz = struct.unpack_from('<5I',
+                                                                  bin,
+                                                                  0x8)
+    if paged_sz != 0:
+        raise ValueError("OP-TEE paged mode not supported")
+    e_entry = (start_hi << 32) + start_lo
+    p_addr = e_entry
+    p_data = bin[0x1c:]
+    if len(p_data) != init_sz:
+        raise ValueError("Invalid file '%s': size mismatch "
+                         "(expected %d, have %d)" % (filename, init_sz,
+                                                     len(p_data)))
     else:
-        raise ValueError("Unknown format for TEE file '%s'" % filename)
-    return segments
+        return [(0, p_addr, p_addr, p_data)]
 
 def main():
     uboot_elf = "./u-boot"

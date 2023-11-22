@@ -93,9 +93,9 @@ class Entry_pre_load(Entry_collection):
 
         # Check hash and signature name/type
         if hash_name not in SHAS:
-            self.Raise(hash_name + " is not supported")
+            self.Raise(f"{hash_name} is not supported")
         if sign_name not in RSAS:
-            self.Raise(sign_name + " is not supported")
+            self.Raise(f"{sign_name} is not supported")
 
         # Read the key
         with open(key_name, 'rb') as pem:
@@ -103,7 +103,7 @@ class Entry_pre_load(Entry_collection):
 
         # Check if the key has the expected size
         if key.size_in_bytes() != RSAS[sign_name]:
-            self.Raise("The key " + self.key_name + " don't have the expected size")
+            self.Raise(f"The key {self.key_name} don't have the expected size")
 
         # Compute the hash
         hash_image = SHAS[hash_name].new()
@@ -112,15 +112,15 @@ class Entry_pre_load(Entry_collection):
         # Compute the signature
         if padding_name is None:
             padding_name = "pkcs-1.5"
-        if padding_name == "pss":
+        if padding_name == "pkcs-1.5":
+            padding = pkcs1_15
+            padding_args = {}
+        elif padding_name == "pss":
             salt_len = key.size_in_bytes() - hash_image.digest_size - 2
             padding = pss
             padding_args = {'salt_bytes': salt_len}
-        elif padding_name == "pkcs-1.5":
-            padding = pkcs1_15
-            padding_args = {}
         else:
-            self.Raise(padding_name + " is not supported")
+            self.Raise(f"{padding_name} is not supported")
 
         sig = padding.new(key, **padding_args).sign(hash_image)
 

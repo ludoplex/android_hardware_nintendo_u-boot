@@ -62,8 +62,7 @@ class Entry_gbb(Entry):
 
         # Read in the GBB flags from the config
         self.gbb_flags = 0
-        flags_node = node.FindNode('flags')
-        if flags_node:
+        if flags_node := node.FindNode('flags'):
             for flag, value in gbb_flag_properties.items():
                 if fdt_util.GetBool(flags_node, flag):
                     self.gbb_flags |= value
@@ -85,10 +84,11 @@ class Entry_gbb(Entry):
             stdout = self.futility.gbb_set(
                 fname,
                 hwid=self.hardware_id,
-                rootkey='%s/root_key.vbpubk' % keydir,
-                recoverykey='%s/recovery_key.vbpubk' % keydir,
+                rootkey=f'{keydir}/root_key.vbpubk',
+                recoverykey=f'{keydir}/recovery_key.vbpubk',
                 flags=self.gbb_flags,
-                bmpfv=tools.get_input_filename(self.bmpblk))
+                bmpfv=tools.get_input_filename(self.bmpblk),
+            )
 
         if stdout is not None:
             self.SetContents(tools.read_file(fname))

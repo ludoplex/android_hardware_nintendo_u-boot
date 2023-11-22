@@ -44,10 +44,7 @@ def md5sum_file(fn, max_length=None):
     """
 
     with open(fn, 'rb') as fh:
-        if max_length:
-            params = [max_length]
-        else:
-            params = []
+        params = [max_length] if max_length else []
         data = fh.read(*params)
     return md5sum_data(data)
 
@@ -76,15 +73,18 @@ class PersistentRandomFile:
 
         self.fn = fn
 
-        self.abs_fn = u_boot_console.config.persistent_data_dir + '/' + fn
+        self.abs_fn = f'{u_boot_console.config.persistent_data_dir}/{fn}'
 
         if os.path.exists(self.abs_fn):
-            u_boot_console.log.action('Persistent data file ' + self.abs_fn +
-                ' already exists')
+            u_boot_console.log.action(f'Persistent data file {self.abs_fn} already exists')
             self.content_hash = md5sum_file(self.abs_fn)
         else:
-            u_boot_console.log.action('Generating ' + self.abs_fn +
-                ' (random, persistent, %d bytes)' % size)
+            u_boot_console.log.action(
+                (
+                    f'Generating {self.abs_fn}'
+                    + ' (random, persistent, %d bytes)' % size
+                )
+            )
             data = os.urandom(size)
             with open(self.abs_fn, 'wb') as fh:
                 fh.write(data)
@@ -124,9 +124,8 @@ def wait_until_open_succeeds(fn):
         An open file handle to the file.
     """
 
-    for i in range(100):
-        fh = attempt_to_open_file(fn)
-        if fh:
+    for _ in range(100):
+        if fh := attempt_to_open_file(fn):
             return fh
         time.sleep(0.1)
     raise Exception('File could not be opened')
@@ -376,6 +375,5 @@ def waitpid(pid, timeout=60, kill=False):
         return True
 
     raise TimeoutError(
-        "Process with PID {} did not terminate after {} seconds."
-        .format(pid, timeout)
+        f"Process with PID {pid} did not terminate after {timeout} seconds."
     )

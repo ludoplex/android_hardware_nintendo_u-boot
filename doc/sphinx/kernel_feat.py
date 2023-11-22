@@ -81,7 +81,7 @@ class KernelFeat(Directive):
     def warn(self, message, **replace):
         replace["fname"]   = self.state.document.current_source
         replace["line_no"] = replace.get("line_no", self.lineno)
-        message = ("%(fname)s:%(line_no)s: [kernel-feat WARN] : " + message) % replace
+        message = f"%(fname)s:%(line_no)s: [kernel-feat WARN] : {message}" % replace
         self.state.document.settings.env.app.warn(message, prefix="")
 
     def run(self):
@@ -96,7 +96,7 @@ class KernelFeat(Directive):
         cmd += self.arguments[0]
 
         if len(self.arguments) > 1:
-            cmd += " --arch " + self.arguments[1]
+            cmd += f" --arch {self.arguments[1]}"
 
         srctree = path.abspath(os.environ["srctree"])
 
@@ -112,8 +112,7 @@ class KernelFeat(Directive):
         shell_env["srctree"] = srctree
 
         lines = self.runCmd(cmd, shell=True, cwd=cwd, env=shell_env)
-        nodeList = self.nestedParse(lines, fname)
-        return nodeList
+        return self.nestedParse(lines, fname)
 
     def runCmd(self, cmd, **kwargs):
         u"""Run command ``cmd`` and return it's stdout as unicode."""
@@ -135,8 +134,9 @@ class KernelFeat(Directive):
                     % (cmd, proc.returncode)
                 )
         except OSError as exc:
-            raise self.severe(u"problems with '%s' directive: %s."
-                              % (self.name, ErrorString(exc)))
+            raise self.severe(
+                f"problems with '{self.name}' directive: {ErrorString(exc)}."
+            )
         return out
 
     def nestedParse(self, lines, fname):

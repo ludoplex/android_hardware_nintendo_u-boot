@@ -167,7 +167,7 @@ class RunAndLog(object):
         if output and not output.endswith('\n'):
             output += '\n'
         if exit_status and not exception and not ignore_errors:
-            exception = ValueError('Exit code: ' + str(exit_status))
+            exception = ValueError(f'Exit code: {exit_status}')
         if exception:
             output += str(exception) + '\n'
         self.logfile.write(self, output)
@@ -234,7 +234,7 @@ class Logfile:
         self.timestamp_blocks = []
         self.seen_warning = False
 
-        shutil.copy(mod_dir + '/multiplexed_log.css', os.path.dirname(fn))
+        shutil.copy(f'{mod_dir}/multiplexed_log.css', os.path.dirname(fn))
         self.f.write('''\
 <html>
 <head>
@@ -343,8 +343,7 @@ $(document).ready(function () {
         data = data.replace(chr(13), '')
         data = ''.join((ord(c) in self._nonprint) and ('%%%02x' % ord(c)) or
                        c for c in data)
-        data = html.escape(data)
-        return data
+        return html.escape(data)
 
     def _terminate_stream(self):
         """Write HTML to the log file to terminate the current stream's data.
@@ -380,10 +379,10 @@ $(document).ready(function () {
         """
 
         self._terminate_stream()
-        self.f.write('<div class="' + note_type + '">\n')
+        self.f.write(f'<div class="{note_type}' + '">\n')
         self.f.write('<pre>')
         if anchor:
-            self.f.write('<a href="#%s">' % anchor)
+            self.f.write(f'<a href="#{anchor}">')
         self.f.write(self._escape(msg))
         if anchor:
             self.f.write('</a>')
@@ -409,7 +408,7 @@ $(document).ready(function () {
             self.anchor += 1
             anchor = str(self.anchor)
         blk_path = '/'.join(self.blocks)
-        self.f.write('<div class="section block" id="' + anchor + '">\n')
+        self.f.write(f'<div class="section block" id="{anchor}' + '">\n')
         self.f.write('<div class="section-header block-header">Section: ' +
                      blk_path + '</div>\n')
         self.f.write('<div class="section-content block-content">\n')
@@ -431,14 +430,14 @@ $(document).ready(function () {
         """
 
         if (not self.blocks) or (marker != self.blocks[-1]):
-            raise Exception('Block nesting mismatch: "%s" "%s"' %
-                            (marker, '/'.join(self.blocks)))
+            raise Exception(
+                f"""Block nesting mismatch: "{marker}" "{'/'.join(self.blocks)}\""""
+            )
         self._terminate_stream()
         timestamp_now = self._get_time()
         timestamp_section_start = self.timestamp_blocks.pop()
         delta_section = timestamp_now - timestamp_section_start
-        self._note("timestamp",
-            "TIME: SINCE-SECTION: " + str(delta_section))
+        self._note("timestamp", f"TIME: SINCE-SECTION: {str(delta_section)}")
         blk_path = '/'.join(self.blocks)
         self.f.write('<div class="section-trailer block-trailer">' +
                      'End section: ' + blk_path + '</div>\n')
@@ -550,10 +549,8 @@ $(document).ready(function () {
 
         self._note("timestamp",
             "TIME: NOW: " + timestamp_now.strftime("%Y/%m/%d %H:%M:%S.%f"))
-        self._note("timestamp",
-            "TIME: SINCE-PREV: " + str(delta_prev))
-        self._note("timestamp",
-            "TIME: SINCE-START: " + str(delta_start))
+        self._note("timestamp", f"TIME: SINCE-PREV: {str(delta_prev)}")
+        self._note("timestamp", f"TIME: SINCE-START: {str(delta_start)}")
 
     def status_pass(self, msg, anchor=None):
         """Write a note to the log file describing test(s) which passed.

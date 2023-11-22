@@ -119,7 +119,7 @@ def test_ums(u_boot_console, env__usb_dev_port, env__block_devs):
     test_f = u_boot_utils.PersistentRandomFile(u_boot_console, 'ums.bin',
         1024 * 1024);
     if have_writable_fs_partition:
-        mounted_test_fn = mount_point + '/' + mount_subdir + test_f.fn
+        mounted_test_fn = f'{mount_point}/{mount_subdir}{test_f.fn}'
 
     def start_ums():
         """Start U-Boot's ums shell command.
@@ -135,7 +135,7 @@ def test_ums(u_boot_console, env__usb_dev_port, env__block_devs):
 
         u_boot_console.log.action(
             'Starting long-running U-Boot ums shell command')
-        cmd = 'ums %s %s %s' % (tgt_usb_ctlr, tgt_dev_type, tgt_dev_id)
+        cmd = f'ums {tgt_usb_ctlr} {tgt_dev_type} {tgt_dev_id}'
         u_boot_console.run_command(cmd, wait_for_prompt=False)
         u_boot_console.wait_for(re.compile('UMS: LUN.*[\r\n]'))
         fh = u_boot_utils.wait_until_open_succeeds(host_ums_part_node)

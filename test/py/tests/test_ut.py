@@ -24,19 +24,17 @@ def setup_bootflow_image(u_boot_console):
     mnt = os.path.join(cons.config.persistent_data_dir, 'mnt')
     mkdir_cond(mnt)
 
-    u_boot_utils.run_and_log(cons, 'qemu-img create %s 20M' % fname)
-    u_boot_utils.run_and_log(cons, 'sudo sfdisk %s' % fname,
-                             stdin=b'type=c')
+    u_boot_utils.run_and_log(cons, f'qemu-img create {fname} 20M')
+    u_boot_utils.run_and_log(cons, f'sudo sfdisk {fname}', stdin=b'type=c')
 
     loop = None
     mounted = False
     complete = False
     try:
-        out = u_boot_utils.run_and_log(cons,
-                                       'sudo losetup --show -f -P %s' % fname)
+        out = u_boot_utils.run_and_log(cons, f'sudo losetup --show -f -P {fname}')
         loop = out.strip()
-        fatpart = '%sp1' % loop
-        u_boot_utils.run_and_log(cons, 'sudo mkfs.vfat %s' % fatpart)
+        fatpart = f'{loop}p1'
+        u_boot_utils.run_and_log(cons, f'sudo mkfs.vfat {fatpart}')
         u_boot_utils.run_and_log(
             cons, 'sudo mount -o loop %s %s -o uid=%d,gid=%d' %
             (fatpart, mnt, os.getuid(), os.getgid()))
@@ -67,48 +65,45 @@ label Fedora-Workstation-armhfp-31-1.9 (5.3.7-301.fc31.armv7hl)
         inf = os.path.join(cons.config.persistent_data_dir, 'inf')
         with open(inf, 'wb') as fd:
             fd.write(gzip.compress(b'vmlinux'))
-        u_boot_utils.run_and_log(cons, 'mkimage -f auto -d %s %s' %
-                                 (inf, os.path.join(mnt, vmlinux)))
+        u_boot_utils.run_and_log(
+            cons, f'mkimage -f auto -d {inf} {os.path.join(mnt, vmlinux)}'
+        )
 
         with open(os.path.join(mnt, initrd), 'w') as fd:
             print('initrd', file=fd)
 
         mkdir_cond(os.path.join(mnt, dtbdir))
 
-        dtb_file = os.path.join(mnt, '%s/sandbox.dtb' % dtbdir)
-        u_boot_utils.run_and_log(
-            cons, 'dtc -o %s' % dtb_file, stdin=b'/dts-v1/; / {};')
+        dtb_file = os.path.join(mnt, f'{dtbdir}/sandbox.dtb')
+        u_boot_utils.run_and_log(cons, f'dtc -o {dtb_file}', stdin=b'/dts-v1/; / {};')
         complete = True
     except ValueError as exc:
-        print('Falled to create image, failing back to prepared copy: %s',
-              str(exc))
+        print('Falled to create image, failing back to prepared copy: %s', exc)
     finally:
         if mounted:
-            u_boot_utils.run_and_log(cons, 'sudo umount %s' % mnt)
+            u_boot_utils.run_and_log(cons, f'sudo umount {mnt}')
         if loop:
-            u_boot_utils.run_and_log(cons, 'sudo losetup -d %s' % loop)
+            u_boot_utils.run_and_log(cons, f'sudo losetup -d {loop}')
 
     if not complete:
         # Use a prepared image since we cannot create one
         infname = os.path.join(cons.config.source_dir,
                                'test/py/tests/bootstd/mmc1.img.xz')
-        u_boot_utils.run_and_log(
-            cons,
-            ['sh', '-c', 'xz -dc %s >%s' % (infname, fname)])
+        u_boot_utils.run_and_log(cons, ['sh', '-c', f'xz -dc {infname} >{fname}'])
 
 
 @pytest.mark.buildconfigspec('ut_dm')
 def test_ut_dm_init(u_boot_console):
     """Initialize data for ut dm tests."""
 
-    fn = u_boot_console.config.source_dir + '/testflash.bin'
+    fn = f'{u_boot_console.config.source_dir}/testflash.bin'
     if not os.path.exists(fn):
         data = b'this is a test'
         data += b'\x00' * ((4 * 1024 * 1024) - len(data))
         with open(fn, 'wb') as fh:
             fh.write(data)
 
-    fn = u_boot_console.config.source_dir + '/spi.bin'
+    fn = f'{u_boot_console.config.source_dir}/spi.bin'
     if not os.path.exists(fn):
         data = b'\x00' * (2 * 1024 * 1024)
         with open(fn, 'wb') as fh:
@@ -142,5 +137,5 @@ def test_ut(u_boot_console, ut_subtest):
             execute command 'ut foo bar'
     """
 
-    output = u_boot_console.run_command('ut ' + ut_subtest)
+    output = u_boot_console.run_command(f'ut {ut_subtest}')
     assert output.endswith('Failures: 0')

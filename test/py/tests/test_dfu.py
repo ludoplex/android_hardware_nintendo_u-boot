@@ -155,10 +155,9 @@ def test_dfu(u_boot_console, env__usb_dev_port, env__dfu_config):
             'Starting long-running U-Boot dfu shell command')
 
         dfu_alt_info_env = env__dfu_config.get('alt_info_env_name', \
-	                                               'dfu_alt_info')
+        'dfu_alt_info')
 
-        cmd = 'setenv "%s" "%s"' % (dfu_alt_info_env,
-                                    env__dfu_config['alt_info'])
+        cmd = f"""setenv "{dfu_alt_info_env}" "{env__dfu_config['alt_info']}\""""
         u_boot_console.run_command(cmd)
 
         cmd = 'dfu 0 ' + env__dfu_config['cmd_params']
@@ -263,7 +262,7 @@ def test_dfu(u_boot_console, env__usb_dev_port, env__dfu_config):
 
         test_f = u_boot_utils.PersistentRandomFile(u_boot_console,
             'dfu_%d.bin' % size, size)
-        readback_fn = u_boot_console.config.result_dir + '/dfu_readback.bin'
+        readback_fn = f'{u_boot_console.config.result_dir}/dfu_readback.bin'
 
         u_boot_console.log.action('Writing test data to DFU primary ' +
             'altsetting')

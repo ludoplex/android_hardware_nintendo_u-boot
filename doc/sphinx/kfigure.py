@@ -45,6 +45,7 @@ u"""
 
     """
 
+
 import os
 from os import path
 import subprocess
@@ -64,11 +65,7 @@ import kernellog
 
 PY3 = sys.version_info[0] == 3
 
-if PY3:
-    _unicode = str
-else:
-    _unicode = unicode
-
+_unicode = str if PY3 else unicode
 # Get Sphinx version
 major, minor, patch = sphinx.version_info[:3]
 if major == 1 and minor > 3:
@@ -179,12 +176,12 @@ def setupTools(app):
     convert_cmd = which('convert')
 
     if dot_cmd:
-        kernellog.verbose(app, "use dot(1) from: " + dot_cmd)
+        kernellog.verbose(app, f"use dot(1) from: {dot_cmd}")
     else:
         kernellog.warn(app, "dot(1) not found, for better output quality install "
                        "graphviz from https://www.graphviz.org")
     if convert_cmd:
-        kernellog.verbose(app, "use convert(1) from: " + convert_cmd)
+        kernellog.verbose(app, f"use convert(1) from: {convert_cmd}")
     else:
         kernellog.warn(app,
             "convert(1) not found, for SVG to PDF conversion install "
@@ -232,20 +229,21 @@ def convert_image(img_node, translator, src_fname=None):
             img_node.replace_self(file2literal(src_fname))
 
         elif translator.builder.format == 'latex':
-            dst_fname = path.join(translator.builder.outdir, fname + '.pdf')
-            img_node['uri'] = fname + '.pdf'
-            img_node['candidates'] = {'*': fname + '.pdf'}
+            dst_fname = path.join(translator.builder.outdir, f'{fname}.pdf')
+            img_node['uri'] = f'{fname}.pdf'
+            img_node['candidates'] = {'*': f'{fname}.pdf'}
 
 
         elif translator.builder.format == 'html':
             dst_fname = path.join(
                 translator.builder.outdir,
                 translator.builder.imagedir,
-                fname + '.svg')
-            img_node['uri'] = path.join(
-                translator.builder.imgpath, fname + '.svg')
+                f'{fname}.svg',
+            )
+            img_node['uri'] = path.join(translator.builder.imgpath, f'{fname}.svg')
             img_node['candidates'] = {
-                '*': path.join(translator.builder.imgpath, fname + '.svg')}
+                '*': path.join(translator.builder.imgpath, f'{fname}.svg')
+            }
 
         else:
             # all other builder formats will include DOT as raw
@@ -259,9 +257,9 @@ def convert_image(img_node, translator, src_fname=None):
                                   "no SVG to PDF conversion available / include SVG raw.")
                 img_node.replace_self(file2literal(src_fname))
             else:
-                dst_fname = path.join(translator.builder.outdir, fname + '.pdf')
-                img_node['uri'] = fname + '.pdf'
-                img_node['candidates'] = {'*': fname + '.pdf'}
+                dst_fname = path.join(translator.builder.outdir, f'{fname}.pdf')
+                img_node['uri'] = f'{fname}.pdf'
+                img_node['candidates'] = {'*': f'{fname}.pdf'}
 
     if dst_fname:
         # the builder needs not to copy one more time, so pop it if exists.
@@ -304,7 +302,7 @@ def dot2format(app, dot_fname, out_fname):
 
     """
     out_format = path.splitext(out_fname)[1][1:]
-    cmd = [dot_cmd, '-T%s' % out_format, dot_fname]
+    cmd = [dot_cmd, f'-T{out_format}', dot_fname]
     exit_code = 42
 
     with open(out_fname, "w") as out:
@@ -312,7 +310,7 @@ def dot2format(app, dot_fname, out_fname):
         if exit_code != 0:
             kernellog.warn(app,
                           "Error #%d when calling: %s" % (exit_code, " ".join(cmd)))
-    return bool(exit_code == 0)
+    return exit_code == 0
 
 def svg2pdf(app, svg_fname, pdf_fname):
     """Converts SVG to PDF with ``convert(1)`` command.
@@ -329,7 +327,7 @@ def svg2pdf(app, svg_fname, pdf_fname):
     exit_code = subprocess.call(cmd)
     if exit_code != 0:
         kernellog.warn(app, "Error #%d when calling: %s" % (exit_code, " ".join(cmd)))
-    return bool(exit_code == 0)
+    return exit_code == 0
 
 
 # image handling
@@ -359,8 +357,8 @@ class KernelImage(images.Image):
         uri = self.arguments[0]
         if uri.endswith('.*') or uri.find('://') != -1:
             raise self.severe(
-                'Error in "%s: %s": glob pattern and remote images are not allowed'
-                % (self.name, uri))
+                f'Error in "{self.name}: {uri}": glob pattern and remote images are not allowed'
+            )
         result = images.Image.run(self)
         if len(result) == 2 or isinstance(result[0], nodes.system_message):
             return result
@@ -421,11 +419,11 @@ def visit_kernel_render(self, node):
     app = self.builder.app
     srclang = node.get('srclang')
 
-    kernellog.verbose(app, 'visit kernel-render node lang: "%s"' % (srclang))
+    kernellog.verbose(app, f'visit kernel-render node lang: "{srclang}"')
 
     tmp_ext = RENDER_MARKUP_EXT.get(srclang, None)
     if tmp_ext is None:
-        kernellog.warn(app, 'kernel-render: "%s" unknown / include raw.' % (srclang))
+        kernellog.warn(app, f'kernel-render: "{srclang}" unknown / include raw.')
         return
 
     if not dot_cmd and tmp_ext == '.dot':
@@ -436,7 +434,7 @@ def visit_kernel_render(self, node):
 
     code      = literal_block.astext()
     hashobj   = code.encode('utf-8') #  str(node.attributes)
-    fname     = path.join('%s-%s' % (srclang, sha1(hashobj).hexdigest()))
+    fname = path.join(f'{srclang}-{sha1(hashobj).hexdigest()}')
 
     tmp_fname = path.join(
         self.builder.outdir, self.builder.imagedir, fname + tmp_ext)
@@ -487,17 +485,21 @@ class KernelRender(Figure):
 
         srclang = self.arguments[0].strip()
         if srclang not in RENDER_MARKUP_EXT.keys():
-            return [self.state_machine.reporter.warning(
-                'Unknown source language "%s", use one of: %s.' % (
-                    srclang, ",".join(RENDER_MARKUP_EXT.keys())),
-                line=self.lineno)]
+            return [
+                self.state_machine.reporter.warning(
+                    f'Unknown source language "{srclang}", use one of: {",".join(RENDER_MARKUP_EXT.keys())}.',
+                    line=self.lineno,
+                )
+            ]
 
         code = '\n'.join(self.content)
         if not code.strip():
-            return [self.state_machine.reporter.warning(
-                'Ignoring "%s" directive without content.' % (
-                    self.name),
-                line=self.lineno)]
+            return [
+                self.state_machine.reporter.warning(
+                    f'Ignoring "{self.name}" directive without content.',
+                    line=self.lineno,
+                )
+            ]
 
         node = kernel_render()
         node['alt'] = self.options.get('alt','')
@@ -505,8 +507,7 @@ class KernelRender(Figure):
         literal_node = nodes.literal_block(code, code)
         node += literal_node
 
-        caption = self.options.get('caption')
-        if caption:
+        if caption := self.options.get('caption'):
             # parse caption's content
             parsed = nodes.Element()
             self.state.nested_parse(

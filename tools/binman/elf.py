@@ -60,10 +60,7 @@ def GetSymbols(fname, patterns):
     """
     stdout = tools.run('objdump', '-t', fname)
     lines = stdout.splitlines()
-    if patterns:
-        re_syms = re.compile('|'.join(patterns))
-    else:
-        re_syms = None
+    re_syms = re.compile('|'.join(patterns)) if patterns else None
     syms = {}
     syms_started = False
     for line in lines:
@@ -99,8 +96,8 @@ def _GetFileOffset(elf, addr):
         int: Offset of that address in the ELF file, or None if not valid
     """
     for seg in elf.iter_segments():
-        seg_end = seg['p_vaddr'] + seg['p_filesz']
         if seg.header['p_type'] == 'PT_LOAD':
+            seg_end = seg['p_vaddr'] + seg['p_filesz']
             if addr >= seg['p_vaddr'] and addr < seg_end:
                 return addr - seg['p_vaddr'] + seg['p_offset']
 
@@ -184,9 +181,7 @@ def GetSymbolAddress(fname, sym_name):
     """
     syms = GetSymbols(fname, [sym_name])
     sym = syms.get(sym_name)
-    if not sym:
-        return None
-    return sym.address
+    return None if not sym else sym.address
 
 def LookupAndWriteSymbols(elf_fname, entry, section):
     """Replace all symbols in an entry with their correct values

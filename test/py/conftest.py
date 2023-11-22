@@ -43,9 +43,7 @@ def mkdir_p(path):
     try:
         os.makedirs(path)
     except OSError as exc:
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
+        if exc.errno != errno.EEXIST or not os.path.isdir(path):
             raise
 
 def pytest_addoption(parser):
@@ -94,10 +92,9 @@ def pytest_configure(config):
         Raises
             Exception if the file does not exist
         """
-        dot_config = build_dir + '/' + conf_file
+        dot_config = f'{build_dir}/{conf_file}'
         if not os.path.exists(dot_config):
-            raise Exception(conf_file + ' does not exist; ' +
-                            'try passing --build option?')
+            raise Exception(f'{conf_file} does not exist; try passing --build option?')
 
         with open(dot_config, 'rt') as f:
             ini_str = '[root]\n' + f.read()
@@ -121,7 +118,7 @@ def pytest_configure(config):
 
     build_dir = config.getoption('build_dir')
     if not build_dir:
-        build_dir = source_dir + '/build-' + board_type
+        build_dir = f'{source_dir}/build-{board_type}'
     mkdir_p(build_dir)
 
     result_dir = config.getoption('result_dir')
@@ -131,7 +128,7 @@ def pytest_configure(config):
 
     persistent_data_dir = config.getoption('persistent_data_dir')
     if not persistent_data_dir:
-        persistent_data_dir = build_dir + '/persistent-data'
+        persistent_data_dir = f'{build_dir}/persistent-data'
     mkdir_p(persistent_data_dir)
 
     gdbserver = config.getoption('gdbserver')
@@ -139,25 +136,21 @@ def pytest_configure(config):
         raise Exception('--gdbserver only supported with sandbox targets')
 
     import multiplexed_log
-    log = multiplexed_log.Logfile(result_dir + '/test-log.html')
+    log = multiplexed_log.Logfile(f'{result_dir}/test-log.html')
 
     if config.getoption('build'):
         if config.getoption('buildman'):
-            if build_dir != source_dir:
-                dest_args = ['-o', build_dir, '-w']
-            else:
-                dest_args = ['-i']
+            dest_args = ['-o', build_dir, '-w'] if build_dir != source_dir else ['-i']
             cmds = (['buildman', '--board', board_type] + dest_args,)
             name = 'buildman'
         else:
-            if build_dir != source_dir:
-                o_opt = 'O=%s' % build_dir
-            else:
-                o_opt = ''
-            cmds = (
-                ['make', o_opt, '-s', board_type + '_defconfig'],
-                ['make', o_opt, '-s', '-j{}'.format(os.cpu_count())],
-            )
+            o_opt = f'O={build_dir}' if build_dir != source_dir else ''
+            cmds = ['make', o_opt, '-s', f'{board_type}_defconfig'], [
+                'make',
+                o_opt,
+                '-s',
+                '-j{}'.format(os.cpu_count()),
+            ]
             name = 'make'
 
         with log.section(name):
@@ -175,10 +168,12 @@ def pytest_configure(config):
     ubconfig.env = dict()
 
     modules = [
-        (ubconfig.brd, 'u_boot_board_' + board_type_filename),
-        (ubconfig.env, 'u_boot_boardenv_' + board_type_filename),
-        (ubconfig.env, 'u_boot_boardenv_' + board_type_filename + '_' +
-            board_identity_filename),
+        (ubconfig.brd, f'u_boot_board_{board_type_filename}'),
+        (ubconfig.env, f'u_boot_boardenv_{board_type_filename}'),
+        (
+            ubconfig.env,
+            f'u_boot_boardenv_{board_type_filename}_{board_identity_filename}',
+        ),
     ]
     for (dict_to_fill, module_name) in modules:
         try:
@@ -192,7 +187,7 @@ def pytest_configure(config):
     # buildman -k puts autoconf.mk in the rootdir, so handle this as well
     # as the standard U-Boot build which leaves it in include/autoconf.mk
     parse_config('.config')
-    if os.path.exists(build_dir + '/' + 'autoconf.mk'):
+    if os.path.exists(f'{build_dir}/autoconf.mk'):
         parse_config('autoconf.mk')
     else:
         parse_config('include/autoconf.mk')
@@ -205,7 +200,7 @@ def pytest_configure(config):
     ubconfig.board_type = board_type
     ubconfig.board_identity = board_identity
     ubconfig.gdbserver = gdbserver
-    ubconfig.dtb = build_dir + '/arch/sandbox/dts/test.dtb'
+    ubconfig.dtb = f'{build_dir}/arch/sandbox/dts/test.dtb'
 
     env_vars = (
         'board_type',
@@ -217,7 +212,7 @@ def pytest_configure(config):
         'persistent_data_dir',
     )
     for v in env_vars:
-        os.environ['U_BOOT_' + v.upper()] = getattr(ubconfig, v)
+        os.environ[f'U_BOOT_{v.upper()}'] = getattr(ubconfig, v)
 
     if board_type.startswith('sandbox'):
         import u_boot_console_sandbox
@@ -253,10 +248,8 @@ def generate_ut_subtest(metafunc, fixture_name, sym_path):
 
     vals = []
     for l in lines:
-        m = re_ut_test_list.search(l)
-        if not m:
-            continue
-        vals.append(m.group(1) + ' ' + m.group(2))
+        if m := re_ut_test_list.search(l):
+            vals.append(f'{m.group(1)} {m.group(2)}')
 
     ids = ['ut_' + s.replace(' ', '_') for s in vals]
     metafunc.parametrize(fixture_name, vals, ids=ids)
@@ -290,18 +283,13 @@ def generate_config(metafunc, fixture_name):
     vals = []
     val = subconfig.get(fixture_name, [])
     # If that exact name is a key in the data source:
-    if val:
-        # ... use the dict value as a single parameter value.
-        vals = (val, )
-    else:
-        # ... otherwise, see if there's a key that contains a list of
-        # values to use instead.
-        vals = subconfig.get(fixture_name+ 's', [])
+    vals = (val, ) if val else subconfig.get(f'{fixture_name}s', [])
     def fixture_id(index, val):
         try:
             return val['fixture_id']
         except:
             return fixture_name + str(index)
+
     ids = [fixture_id(index, val) for (index, val) in enumerate(vals)]
     metafunc.parametrize(fixture_name, vals, ids=ids)
 
@@ -322,8 +310,7 @@ def pytest_generate_tests(metafunc):
         if fn == 'ut_subtest':
             generate_ut_subtest(metafunc, fn, '/u-boot.sym')
             continue
-        m_subtest = re.match('ut_(.)pl_subtest', fn)
-        if m_subtest:
+        if m_subtest := re.match('ut_(.)pl_subtest', fn):
             spl_name = m_subtest.group(1)
             generate_ut_subtest(
                 metafunc, fn, f'/{spl_name}pl/u-boot-{spl_name}pl.sym')
@@ -417,32 +404,32 @@ def cleanup():
                 log.status_warning('%d passed with warning' % len(tests_warning))
                 for test in tests_warning:
                     anchor = anchors.get(test, None)
-                    log.status_warning('... ' + test, anchor)
+                    log.status_warning(f'... {test}', anchor)
             if tests_skipped:
                 log.status_skipped('%d skipped' % len(tests_skipped))
                 for test in tests_skipped:
                     anchor = anchors.get(test, None)
-                    log.status_skipped('... ' + test, anchor)
+                    log.status_skipped(f'... {test}', anchor)
             if tests_xpassed:
                 log.status_xpass('%d xpass' % len(tests_xpassed))
                 for test in tests_xpassed:
                     anchor = anchors.get(test, None)
-                    log.status_xpass('... ' + test, anchor)
+                    log.status_xpass(f'... {test}', anchor)
             if tests_xfailed:
                 log.status_xfail('%d xfail' % len(tests_xfailed))
                 for test in tests_xfailed:
                     anchor = anchors.get(test, None)
-                    log.status_xfail('... ' + test, anchor)
+                    log.status_xfail(f'... {test}', anchor)
             if tests_failed:
                 log.status_fail('%d failed' % len(tests_failed))
                 for test in tests_failed:
                     anchor = anchors.get(test, None)
-                    log.status_fail('... ' + test, anchor)
+                    log.status_fail(f'... {test}', anchor)
             if tests_not_run:
                 log.status_fail('%d not run' % len(tests_not_run))
                 for test in tests_not_run:
                     anchor = anchors.get(test, None)
-                    log.status_fail('... ' + test, anchor)
+                    log.status_fail(f'... {test}', anchor)
         log.close()
 atexit.register(cleanup)
 
@@ -465,12 +452,12 @@ def setup_boardspec(item):
         board = boards.args[0]
         if board.startswith('!'):
             if ubconfig.board_type == board[1:]:
-                pytest.skip('board "%s" not supported' % ubconfig.board_type)
+                pytest.skip(f'board "{ubconfig.board_type}" not supported')
                 return
         else:
             required_boards.append(board)
     if required_boards and ubconfig.board_type not in required_boards:
-        pytest.skip('board "%s" not supported' % ubconfig.board_type)
+        pytest.skip(f'board "{ubconfig.board_type}" not supported')
 
 def setup_buildconfigspec(item):
     """Process any 'buildconfigspec' marker for a test.
@@ -488,12 +475,12 @@ def setup_buildconfigspec(item):
 
     for options in item.iter_markers('buildconfigspec'):
         option = options.args[0]
-        if not ubconfig.buildconfig.get('config_' + option.lower(), None):
-            pytest.skip('.config feature "%s" not enabled' % option.lower())
+        if not ubconfig.buildconfig.get(f'config_{option.lower()}', None):
+            pytest.skip(f'.config feature "{option.lower()}" not enabled')
     for options in item.iter_markers('notbuildconfigspec'):
         option = options.args[0]
-        if ubconfig.buildconfig.get('config_' + option.lower(), None):
-            pytest.skip('.config feature "%s" enabled' % option.lower())
+        if ubconfig.buildconfig.get(f'config_{option.lower()}', None):
+            pytest.skip(f'.config feature "{option.lower()}" enabled')
 
 def tool_is_in_path(tool):
     for path in os.environ["PATH"].split(os.pathsep):
@@ -519,7 +506,7 @@ def setup_requiredtool(item):
     for tools in item.iter_markers('requiredtool'):
         tool = tools.args[0]
         if not tool_is_in_path(tool):
-            pytest.skip('tool "%s" not in $PATH' % tool)
+            pytest.skip(f'tool "{tool}" not in $PATH')
 
 def start_test_section(item):
     anchors[item.name] = log.start_section(item.name)
@@ -568,7 +555,7 @@ def pytest_runtest_protocol(item, nextitem):
     # in the log file. The call to log.end_section() requires that the log
     # contain a section for this test. Create a section for the test if it
     # doesn't already exist.
-    if not item.name in anchors:
+    if item.name not in anchors:
         start_test_section(item)
 
     failure_cleanup = False

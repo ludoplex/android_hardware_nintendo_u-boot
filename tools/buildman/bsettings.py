@@ -19,7 +19,7 @@ def Setup(fname=''):
     if fname is not None:
         config_fname = fname
         if config_fname == '':
-            config_fname = '%s/.buildman' % os.getenv('HOME')
+            config_fname = f"{os.getenv('HOME')}/.buildman"
         if not os.path.exists(config_fname):
             print('No config file found ~/.buildman\nCreating one...\n')
             CreateBuildmanConfigFile(config_fname)

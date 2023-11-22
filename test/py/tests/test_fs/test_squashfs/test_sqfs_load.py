@@ -21,11 +21,14 @@ def original_md5sum(path):
         The original file's checksum as a string.
     """
 
-    out = subprocess.run(['md5sum ' + path], shell=True, check=True,
-                         capture_output=True, text=True)
-    checksum = out.stdout.split()[0]
-
-    return checksum
+    out = subprocess.run(
+        [f'md5sum {path}'],
+        shell=True,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return out.stdout.split()[0]
 
 def uboot_md5sum(u_boot_console, address, count):
     """ Runs U-Boot's md5sum command.
@@ -39,10 +42,8 @@ def uboot_md5sum(u_boot_console, address, count):
         The checksum of the file loaded with sqfsload as a string.
     """
 
-    out = u_boot_console.run_command('md5sum {} {}'.format(address, count))
-    checksum = out.split()[-1]
-
-    return checksum
+    out = u_boot_console.run_command(f'md5sum {address} {count}')
+    return out.split()[-1]
 
 def sqfs_load_files(u_boot_console, files, sizes, address):
     """ Loads files and asserts their checksums.
@@ -55,14 +56,14 @@ def sqfs_load_files(u_boot_console, files, sizes, address):
     """
     build_dir = u_boot_console.config.build_dir
     for (file, size) in zip(files, sizes):
-        out = u_boot_console.run_command('sqfsload host 0 {} {}'.format(address, file))
+        out = u_boot_console.run_command(f'sqfsload host 0 {address} {file}')
 
         # check if the right amount of bytes was read
         assert size in out
 
         # compare original file's checksum against u-boot's
         u_boot_checksum = uboot_md5sum(u_boot_console, address, hex(int(size)))
-        original_file_path = os.path.join(build_dir, SQFS_SRC_DIR + '/' + file)
+        original_file_path = os.path.join(build_dir, f'{SQFS_SRC_DIR}/{file}')
         original_checksum = original_md5sum(original_file_path)
         assert u_boot_checksum == original_checksum
 
@@ -103,7 +104,7 @@ def sqfs_load_non_existent_file(u_boot_console):
     """
     address = '$kernel_addr_r'
     file = 'non-existent'
-    out = u_boot_console.run_command('sqfsload host 0 {} {}'.format(address, file))
+    out = u_boot_console.run_command(f'sqfsload host 0 {address} {file}')
     assert 'Failed to load' in out
 
 def sqfs_run_all_load_tests(u_boot_console):
@@ -142,7 +143,7 @@ def test_sqfs_load(u_boot_console):
     for image in STANDARD_TABLE:
         try:
             image_path = os.path.join(build_dir, image)
-            u_boot_console.run_command('host bind 0 {}'.format(image_path))
+            u_boot_console.run_command(f'host bind 0 {image_path}')
             sqfs_run_all_load_tests(u_boot_console)
         except:
             clean_all_images(build_dir)

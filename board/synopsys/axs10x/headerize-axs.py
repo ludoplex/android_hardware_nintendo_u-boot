@@ -31,15 +31,15 @@ def calc_check_sum(filename):
 
 def arg_verify(uboot_bin_filename, uboot_elf_filename, header_type):
     if not os.path.isfile(uboot_bin_filename):
-        print("uboot bin file not exists: " + uboot_bin_filename)
+        print(f"uboot bin file not exists: {uboot_bin_filename}")
         sys.exit(2)
 
     if not os.path.isfile(uboot_elf_filename):
-        print("uboot elf file not exists: " + uboot_elf_filename)
+        print(f"uboot elf file not exists: {uboot_elf_filename}")
         sys.exit(2)
 
     if header_type not in ("v1", "v2"):
-        print("unknown header type: " + header_type)
+        print(f"unknown header type: {header_type}")
         print("choose between 'v1' (most likely AXS101) and 'v2' (most likely AXS103)")
         sys.exit(2)
 
@@ -108,9 +108,10 @@ def main():
         file.write(check_sum.to_bytes(1, byteorder='little'))
         file.write(image_copy_adr.to_bytes(4, byteorder='little'))
         file.write(magic1.to_bytes(5, byteorder='big'))
-        for i in range(16): file.write(0x00.to_bytes(1, byteorder='little'))
+        for _ in range(16):
+            file.write(0x00.to_bytes(1, byteorder='little'))
         for byte in magic2: file.write(byte.to_bytes(36, byteorder='big'))
-        for i in range(224 - len(magic2) * 36):
+        for _ in range(224 - len(magic2) * 36):
             file.write(0x00.to_bytes(1, byteorder='little'))
         if imade_jump_append:
             file.write(jump_address.to_bytes(4, byteorder='little'))
@@ -130,8 +131,7 @@ def main():
     crc_store_adr = load_addr - 0x8
     crc_calc_adr = crc_store_adr - 0x4
     load_size = os.path.getsize(headerised_filename)
-    crc_calc_cmd = \
-        "crc32 " + hex(load_addr) + " " + hex(load_size) + " " + hex(crc_calc_adr)
+    crc_calc_cmd = f"crc32 {hex(load_addr)} {hex(load_size)} {hex(crc_calc_adr)}"
     crc_check_cmd = \
         "mw.l " + hex(crc_store_adr) + " " + headerised_image_crc + " && " + \
         crc_calc_cmd + " && " + \

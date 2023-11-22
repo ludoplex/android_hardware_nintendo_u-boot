@@ -81,7 +81,7 @@ class Entry_intel_ifwi(Entry_blob_ext):
             # First get the input data and put it in a file
             data = entry.GetPaddedData()
             uniq = self.GetUniqueName()
-            input_fname = tools.get_output_filename('input.%s' % uniq)
+            input_fname = tools.get_output_filename(f'input.{uniq}')
             tools.write_file(input_fname, data)
 
             # At this point we know that ifwitool is present, so we don't need
@@ -124,8 +124,7 @@ class Entry_intel_ifwi(Entry_blob_ext):
             return True
         orig_data = self.data
         self._BuildIfwi()
-        same = orig_data == self.data
-        return same
+        return orig_data == self.data
 
     def ReadEntries(self):
         """Read the subnodes to find out what should go in this IFWI"""

@@ -125,9 +125,6 @@ def markup_refs(docname, app, node):
 # own C role, but both match the same regex, so we try both.
 #
 def markup_func_ref_sphinx3(docname, app, match):
-    class_str = ['c-func', 'c-macro']
-    reftype_str = ['function', 'macro']
-
     cdom = app.env.domains['c']
     #
     # Go through the dance of getting an xref out of the C domain
@@ -139,9 +136,12 @@ def markup_func_ref_sphinx3(docname, app, match):
     # Check if this document has a namespace, and if so, try
     # cross-referencing inside it first.
     if c_namespace:
-        possible_targets.insert(0, c_namespace + "." + base_target)
+        possible_targets.insert(0, f"{c_namespace}.{base_target}")
 
     if base_target not in Skipnames:
+        class_str = ['c-func', 'c-macro']
+        reftype_str = ['function', 'macro']
+
         for target in possible_targets:
             if target not in Skipfuncs:
                 for class_s, reftype_s in zip(class_str, reftype_str):
@@ -198,11 +198,11 @@ def markup_c_ref(docname, app, match):
     # Check if this document has a namespace, and if so, try
     # cross-referencing inside it first.
     if c_namespace:
-        possible_targets.insert(0, c_namespace + "." + base_target)
+        possible_targets.insert(0, f"{c_namespace}.{base_target}")
 
     if base_target not in Skipnames:
         for target in possible_targets:
-            if not (match.re == RE_function and target in Skipfuncs):
+            if match.re != RE_function or target not in Skipfuncs:
                 lit_text = nodes.literal(classes=['xref', 'c', class_str[match.re]])
                 lit_text += target_text
                 pxref = addnodes.pending_xref('', refdomain = 'c',
@@ -251,17 +251,13 @@ def markup_doc_ref(docname, app, match):
     #
     # Return the xref if we got it; otherwise just return the plain text.
     #
-    if xref:
-        return xref
-    else:
-        return nodes.Text(match.group(0))
+    return xref if xref else nodes.Text(match.group(0))
 
 def get_c_namespace(app, docname):
     source = app.env.doc2path(docname)
     with open(source) as f:
         for l in f:
-            match = RE_namespace.search(l)
-            if match:
+            if match := RE_namespace.search(l):
                 return match.group(1)
     return ''
 

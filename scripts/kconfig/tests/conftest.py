@@ -97,9 +97,9 @@ class Conf:
         # of tests, the captured log will be displayed.  This will be useful to
         # figure out what has happened.
 
-        print("[command]\n{}\n".format(' '.join(command)))
+        print(f"[command]\n{' '.join(command)}\n")
 
-        print("[retcode]\n{}\n".format(self.retcode))
+        print(f"[retcode]\n{self.retcode}\n")
 
         print("[stdout]")
         print(self.stdout)
@@ -108,7 +108,7 @@ class Conf:
         print(self.stderr)
 
         if self.config is not None:
-            print("[output for '{}']".format(out_file))
+            print(f"[output for '{out_file}']")
             print(self.config)
 
         return self.retcode
@@ -148,7 +148,7 @@ class Conf:
         returncode: exit status of the Kconfig executable
         """
         defconfig_path = os.path.join(self._test_dir, defconfig)
-        return self._run_conf('--defconfig={}'.format(defconfig_path))
+        return self._run_conf(f'--defconfig={defconfig_path}')
 
     def _allconfig(self, mode, all_config):
         if all_config:
@@ -157,7 +157,7 @@ class Conf:
         else:
             extra_env = {}
 
-        return self._run_conf('--{}config'.format(mode), extra_env=extra_env)
+        return self._run_conf(f'--{mode}config', extra_env=extra_env)
 
     def allyesconfig(self, all_config=None):
         """Run allyesconfig.

@@ -65,10 +65,10 @@ def _FindBinmanNode(dtb):
     Returns:
         Node object of /binman node, or None if not found
     """
-    for node in dtb.GetRoot().subnodes:
-        if node.name == 'binman':
-            return node
-    return None
+    return next(
+        (node for node in dtb.GetRoot().subnodes if node.name == 'binman'),
+        None,
+    )
 
 def _ReadMissingBlobHelp():
     """Read the missing-blob-help file
@@ -108,7 +108,7 @@ def _ReadMissingBlobHelp():
 def _ShowBlobHelp(path, text):
     tout.warning('\n%s:' % path)
     for line in text.splitlines():
-        tout.warning('   %s' % line)
+        tout.warning(f'   {line}')
 
 def _ShowHelpForMissingBlobs(missing_list):
     """Show help for each missing blob to help the user take action
@@ -138,9 +138,11 @@ def GetEntryModules(include_testing=True):
     """
     glob_list = pkg_resources.resource_listdir(__name__, 'etype')
     glob_list = [fname for fname in glob_list if fname.endswith('.py')]
-    return set([os.path.splitext(os.path.basename(item))[0]
-                for item in glob_list
-                if include_testing or '_testing' not in item])
+    return {
+        os.path.splitext(os.path.basename(item))[0]
+        for item in glob_list
+        if include_testing or '_testing' not in item
+    }
 
 def WriteEntryDocs(modules, test_missing=None):
     """Write out documentation for all entries
@@ -346,7 +348,7 @@ def AfterReplace(image, allow_resize, write_map):
 def WriteEntryToImage(image, entry, data, do_compress=True, allow_resize=True,
                       write_map=False):
     BeforeReplace(image, allow_resize)
-    tout.info('Writing data to %s' % entry.GetPath())
+    tout.info(f'Writing data to {entry.GetPath()}')
     ReplaceOneEntry(image, entry, data, do_compress, allow_resize)
     AfterReplace(image, allow_resize=allow_resize, write_map=write_map)
 
@@ -371,7 +373,7 @@ def WriteEntry(image_fname, entry_path, data, do_compress=True,
     Returns:
         Image object that was updated
     """
-    tout.info("Write entry '%s', file '%s'" % (entry_path, image_fname))
+    tout.info(f"Write entry '{entry_path}', file '{image_fname}'")
     image = Image.FromFile(image_fname)
     image.CollectBintools()
     entry = image.FindEntryPath(entry_path)
@@ -427,20 +429,18 @@ def ReplaceEntries(image_fname, input_fname, indir, entry_paths,
     for einfo in einfos:
         entry = einfo.entry
         if entry.GetEntries():
-            tout.info("Skipping section entry '%s'" % entry.GetPath())
+            tout.info(f"Skipping section entry '{entry.GetPath()}'")
             continue
 
         path = entry.GetPath()[1:]
         fname = os.path.join(indir, path)
 
         if os.path.exists(fname):
-            tout.notice("Write entry '%s' from file '%s'" %
-                        (entry.GetPath(), fname))
+            tout.notice(f"Write entry '{entry.GetPath()}' from file '{fname}'")
             data = tools.read_file(fname)
             ReplaceOneEntry(image, entry, data, do_compress, allow_resize)
         else:
-            tout.warning("Skipping entry '%s' from missing file '%s'" %
-                         (entry.GetPath(), fname))
+            tout.warning(f"Skipping entry '{entry.GetPath()}' from missing file '{fname}'")
 
     AfterReplace(image, allow_resize=allow_resize, write_map=write_map)
     return image
@@ -499,7 +499,7 @@ def PrepareImagesAndDtbs(dtb_fname, select_images, update_fdt, use_expanded):
             else:
                 skip.append(name)
         images = new_images
-        tout.notice('Skipping images: %s' % ', '.join(skip))
+        tout.notice(f"Skipping images: {', '.join(skip)}")
 
     state.Prepare(images, dtb)
 
@@ -572,7 +572,7 @@ def ProcessImage(image, update_fdt, write_map, get_contents=True,
         except Exception as e:
             if write_map:
                 fname = image.WriteMap()
-                print("Wrote map file '%s' to show errors"  % fname)
+                print(f"Wrote map file '{fname}' to show errors")
             raise
         image.SetImagePos()
         if update_fdt:
@@ -587,8 +587,7 @@ def ProcessImage(image, update_fdt, write_map, get_contents=True,
         image.ResetForPack()
     tout.info('Pack completed after %d pass(es)' % (pack_pass + 1))
     if not sizes_ok:
-        image.Raise('Entries changed size after packing (tried %s passes)' %
-                    passes)
+        image.Raise(f'Entries changed size after packing (tried {passes} passes)')
 
     image.BuildImage()
     if write_map:
@@ -596,8 +595,9 @@ def ProcessImage(image, update_fdt, write_map, get_contents=True,
     missing_list = []
     image.CheckMissing(missing_list)
     if missing_list:
-        tout.warning("Image '%s' is missing external blobs and is non-functional: %s" %
-                     (image.name, ' '.join([e.name for e in missing_list])))
+        tout.warning(
+            f"Image '{image.name}' is missing external blobs and is non-functional: {' '.join([e.name for e in missing_list])}"
+        )
         _ShowHelpForMissingBlobs(missing_list)
     faked_list = []
     image.CheckFakedBlobs(faked_list)
@@ -676,8 +676,9 @@ def Binman(args):
     if args.update_fdt_in_elf:
         elf_params = args.update_fdt_in_elf.split(',')
         if len(elf_params) != 4:
-            raise ValueError('Invalid args %s to --update-fdt-in-elf: expected infile,outfile,begin_sym,end_sym' %
-                             elf_params)
+            raise ValueError(
+                f'Invalid args {elf_params} to --update-fdt-in-elf: expected infile,outfile,begin_sym,end_sym'
+            )
 
     # Try to figure out which device tree contains our image description
     if args.dt:

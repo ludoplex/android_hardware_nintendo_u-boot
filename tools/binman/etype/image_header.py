@@ -28,15 +28,15 @@ def LocateHeaderOffset(data):
     """
     hdr_pos = data.find(IMAGE_HEADER_MAGIC)
     if hdr_pos != -1:
-        size = len(data)
         hdr = data[hdr_pos:hdr_pos + IMAGE_HEADER_LEN]
         if len(hdr) == IMAGE_HEADER_LEN:
             offset = struct.unpack('<I', hdr[4:])[0]
-            if hdr_pos == len(data) - IMAGE_HEADER_LEN:
-                pos = size + offset - (1 << 32)
-            else:
-                pos = offset
-            return pos
+            size = len(data)
+            return (
+                size + offset - (1 << 32)
+                if hdr_pos == len(data) - IMAGE_HEADER_LEN
+                else offset
+            )
     return None
 
 class Entry_image_header(Entry):
@@ -72,8 +72,7 @@ class Entry_image_header(Entry):
             image_size = self.section.GetImageSize() or 0
             base = (0 if self.location != 'end' else image_size)
             offset = (image_pos - base) & 0xffffffff
-        data = IMAGE_HEADER_MAGIC + struct.pack('<I', offset)
-        return data
+        return IMAGE_HEADER_MAGIC + struct.pack('<I', offset)
 
     def ObtainContents(self):
         """Obtain a placeholder for the header contents"""
@@ -84,22 +83,17 @@ class Entry_image_header(Entry):
         """Special pack method to set the offset to start/end of image"""
         if not self.offset:
             if self.location not in ['start', 'end']:
-                self.Raise("Invalid location '%s', expected 'start' or 'end'" %
-                           self.location)
+                self.Raise(f"Invalid location '{self.location}', expected 'start' or 'end'")
             order = self.GetSiblingOrder()
             if self.location != order and not self.section.GetSort():
-                self.Raise("Invalid sibling order '%s' for image-header: Must be at '%s' to match location" %
-                           (order, self.location))
+                self.Raise(
+                    f"Invalid sibling order '{order}' for image-header: Must be at '{self.location}' to match location"
+                )
             if self.location != 'end':
                 offset = 0
             else:
                 image_size = self.section.GetImageSize()
-                if image_size is None:
-                    # We don't know the image, but this must be the last entry,
-                    # so we can assume it goes
-                    offset = offset
-                else:
-                    offset = image_size - IMAGE_HEADER_LEN
+                offset = offset if image_size is None else image_size - IMAGE_HEADER_LEN
         offset += self.section.GetStartOffset()
         return super().Pack(offset)
 

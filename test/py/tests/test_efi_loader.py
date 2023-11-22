@@ -59,12 +59,10 @@ def test_efi_pre_commands(u_boot_console):
     beginning of this file.
     """
 
-    init_usb = u_boot_console.config.env.get('env__net_uses_usb', False)
-    if init_usb:
+    if init_usb := u_boot_console.config.env.get('env__net_uses_usb', False):
         u_boot_console.run_command('usb start')
 
-    init_pci = u_boot_console.config.env.get('env__net_uses_pci', False)
-    if init_pci:
+    if init_pci := u_boot_console.config.env.get('env__net_uses_pci', False):
         u_boot_console.run_command('pci enum')
 
 @pytest.mark.buildconfigspec('cmd_dhcp')
@@ -105,7 +103,7 @@ def test_efi_setup_static(u_boot_console):
         return None
 
     for (var, val) in env_vars:
-        u_boot_console.run_command('setenv %s %s' % (var, val))
+        u_boot_console.run_command(f'setenv {var} {val}')
 
     global net_set_up
     net_set_up = True
@@ -121,7 +119,7 @@ def fetch_tftp_file(u_boot_console, env_conf):
 
     f = u_boot_console.config.env.get(env_conf, None)
     if not f:
-        pytest.skip('No %s binary specified in environment' % env_conf)
+        pytest.skip(f'No {env_conf} binary specified in environment')
 
     addr = f.get('addr', None)
     if not addr:
@@ -130,8 +128,7 @@ def fetch_tftp_file(u_boot_console, env_conf):
     fn = f['fn']
     output = u_boot_console.run_command('tftpboot %x %s' % (addr, fn))
     expected_text = 'Bytes transferred = '
-    sz = f.get('size', None)
-    if sz:
+    if sz := f.get('size', None):
         expected_text += '%d' % sz
     assert expected_text in output
 
@@ -189,9 +186,9 @@ def test_efi_grub_net(u_boot_console):
 
     u_boot_console.run_command('bootefi %x' % addr, wait_for_prompt=False)
 
-    # Verify that we have an SMBIOS table
-    check_smbios = u_boot_console.config.env.get('env__efi_loader_check_smbios', False)
-    if check_smbios:
+    if check_smbios := u_boot_console.config.env.get(
+        'env__efi_loader_check_smbios', False
+    ):
         u_boot_console.wait_for('grub>')
         u_boot_console.run_command('lsefisystab', wait_for_prompt=False, wait_for_echo=False)
         u_boot_console.wait_for('SMBIOS')

@@ -82,8 +82,8 @@ def test_fit_ecdsa(u_boot_console):
         util.run_and_log(cons, f'dtc {datadir}/{dts} -O dtb -o {tempdir}/{dtb}')
 
     cons = u_boot_console
-    mkimage = cons.config.build_dir + '/tools/mkimage'
-    datadir = cons.config.source_dir + '/test/py/tests/vboot/'
+    mkimage = f'{cons.config.build_dir}/tools/mkimage'
+    datadir = f'{cons.config.source_dir}/test/py/tests/vboot/'
     tempdir = cons.config.result_dir
     key_file = f'{tempdir}/ecdsa-test-key.pem'
     fit_file = f'{tempdir}/test.fit'

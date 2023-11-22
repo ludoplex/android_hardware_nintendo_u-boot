@@ -34,8 +34,12 @@ def swap_chunk(chunk_orig):
     if pad_len > 0:
         chunk += b'\x00' * (4 - pad_len)
 
-    chunk[0::4], chunk[1::4], chunk[2::4], chunk[3::4] =\
-        chunk[3::4], chunk[2::4], chunk[1::4], chunk[0::4]
+    chunk[::4], chunk[1::4], chunk[2::4], chunk[3::4] = (
+        chunk[3::4],
+        chunk[2::4],
+        chunk[1::4],
+        chunk[::4],
+    )
 
     return chunk
 
@@ -45,11 +49,10 @@ def main():
     with open(args.input_bin, "rb") as input_bin:
         with open(args.output_bin, "wb") as output_bin:
             while True:
-                chunk = bytearray(input_bin.read(args.chunk_size))
-                if not chunk:
+                if chunk := bytearray(input_bin.read(args.chunk_size)):
+                    output_bin.write(swap_chunk(chunk))
+                else:
                     break
-
-                output_bin.write(swap_chunk(chunk))
 
 if __name__ == '__main__':
     main()

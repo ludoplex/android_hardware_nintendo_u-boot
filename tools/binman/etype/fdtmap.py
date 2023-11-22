@@ -125,12 +125,10 @@ class Entry_fdtmap(Entry):
 
             # Find the node for the image containing the Fdt-map entry
             path = self.section.GetPath()
-            self.Detail("Fdtmap: Using section '%s' (path '%s')" %
-                        (self.section.name, path))
+            self.Detail(f"Fdtmap: Using section '{self.section.name}' (path '{path}')")
             node = infdt.GetNode(path)
             if not node:
-                self.Raise("Internal error: Cannot locate node for path '%s'" %
-                           path)
+                self.Raise(f"Internal error: Cannot locate node for path '{path}'")
 
             # Build a new tree with all nodes and properties starting from that
             # node

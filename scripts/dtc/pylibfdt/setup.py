@@ -46,22 +46,21 @@ def ParseMakefile(fname):
     with open(fname) as fd:
         prev_text = ''  # Continuation text from previous line(s)
         for line in fd.read().splitlines():
-          if line and line[-1] == '\\':  # Deal with line continuation
-            prev_text += line[:-1]
-            continue
-          elif prev_text:
-            line = prev_text + line
-            prev_text = ''  # Continuation is now used up
-          m = RE_KEY_VALUE.match(line)
-          if m:
-            value = m.group('value') or ''
-            key = m.group('key')
+            if line and line[-1] == '\\':  # Deal with line continuation
+              prev_text += line[:-1]
+              continue
+            elif prev_text:
+              line = prev_text + line
+              prev_text = ''  # Continuation is now used up
+            if m := RE_KEY_VALUE.match(line):
+                value = m.group('value') or ''
+                key = m.group('key')
 
-            # Appending to a variable inserts a space beforehand
-            if 'plus' in m.groupdict() and key in makevars:
-              makevars[key] += ' ' + value
-            else:
-              makevars[key] = value
+                            # Appending to a variable inserts a space beforehand
+                if 'plus' in m.groupdict() and key in makevars:
+                    makevars[key] += f' {value}'
+                else:
+                    makevars[key] = value
     return makevars
 
 def GetEnvFromMakefiles():
@@ -79,15 +78,14 @@ def GetEnvFromMakefiles():
             Object directory to use (always '')
     """
     basedir = os.path.dirname(os.path.dirname(os.path.abspath(sys.argv[0])))
-    swig_opts = ['-I%s' % basedir]
+    swig_opts = [f'-I{basedir}']
     makevars = ParseMakefile(os.path.join(basedir, 'Makefile'))
-    version = '%s.%s.%s' % (makevars['VERSION'], makevars['PATCHLEVEL'],
-                            makevars['SUBLEVEL'])
+    version = f"{makevars['VERSION']}.{makevars['PATCHLEVEL']}.{makevars['SUBLEVEL']}"
     makevars = ParseMakefile(os.path.join(basedir, 'libfdt', 'Makefile.libfdt'))
     files = makevars['LIBFDT_SRCS'].split()
     files = [os.path.join(basedir, 'libfdt', fname) for fname in files]
     files.append('pylibfdt/libfdt.i')
-    cflags = ['-I%s' % basedir, '-I%s/libfdt' % basedir]
+    cflags = [f'-I{basedir}', f'-I{basedir}/libfdt']
     objdir = ''
     return swig_opts, version, files, cflags, objdir
 

@@ -66,14 +66,13 @@ class Entry_u_boot_dtb_with_ucode(Entry_blob_dtb):
         fdt = state.GetFdtForEtype(etype)
         self.ucode = fdt.GetNode('/microcode')
         if not self.ucode:
-            raise self.Raise("No /microcode node found in '%s'" % etype)
+            raise self.Raise(f"No /microcode node found in '{etype}'")
 
         # There's no need to collate it (move all microcode into one place)
         # if we only have one chunk of microcode.
         self.collate = len(self.ucode.subnodes) > 1
         for node in self.ucode.subnodes:
-            data_prop = node.props.get('data')
-            if data_prop:
+            if data_prop := node.props.get('data'):
                 self.ucode_data += data_prop.bytes
                 if self.collate:
                     node.DeleteProp('data')
@@ -84,8 +83,7 @@ class Entry_u_boot_dtb_with_ucode(Entry_blob_dtb):
         super().ObtainContents()
         if self.ucode and not self.collate:
             for node in self.ucode.subnodes:
-                data_prop = node.props.get('data')
-                if data_prop:
+                if data_prop := node.props.get('data'):
                     # Find the offset in the device tree of the ucode data
                     self.ucode_offset = data_prop.GetOffset() + 12
                     self.ucode_size = len(data_prop.bytes)

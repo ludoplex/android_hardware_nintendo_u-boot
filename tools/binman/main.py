@@ -88,12 +88,15 @@ def RunTests(debug, verbosity, processes, test_preserve_dirs, args, toolpath):
 def RunTestCoverage(toolpath):
     """Run the tests and check that we get 100% coverage"""
     glob_list = control.GetEntryModules(False)
-    all_set = set([os.path.splitext(os.path.basename(item))[0]
-                   for item in glob_list if '_testing' not in item])
+    all_set = {
+        os.path.splitext(os.path.basename(item))[0]
+        for item in glob_list
+        if '_testing' not in item
+    }
     extra_args = ''
     if toolpath:
         for path in toolpath:
-            extra_args += ' --toolpath %s' % path
+            extra_args += f' --toolpath {path}'
     test_util.run_test_coverage('tools/binman/binman', None,
             ['*test*', '*main.py', 'tools/patman/*', 'tools/dtoc/*'],
             args.build_dir, all_set, extra_args or None)
@@ -132,7 +135,7 @@ def RunBinman(args):
         try:
             ret_code = control.Binman(args)
         except Exception as e:
-            print('binman: %s' % e, file=sys.stderr)
+            print(f'binman: {e}', file=sys.stderr)
             if args.debug:
                 print()
                 traceback.print_exc()

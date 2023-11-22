@@ -201,7 +201,7 @@ class Spawn:
                         alive, _, info = self.checkalive()
                         if alive:
                             raise err
-                        raise ValueError('U-Boot exited with %s' % info)
+                        raise ValueError(f'U-Boot exited with {info}')
                     raise err
                 if self.logfile_read:
                     self.logfile_read.write(c)

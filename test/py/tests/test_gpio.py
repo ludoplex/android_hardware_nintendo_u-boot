@@ -132,7 +132,7 @@ def test_gpio_set_generic(u_boot_console):
     gpio_set_value = f['gpio_set_value'];
 
 
-    cmd = 'gpio set ' + gpio_pin_adr
+    cmd = f'gpio set {gpio_pin_adr}'
     response = u_boot_console.run_command(cmd)
     good_response = gpio_set_value
     assert good_response in response
@@ -156,7 +156,7 @@ def test_gpio_clear_generic(u_boot_console):
     gpio_clear_value = f['gpio_clear_value'];
 
 
-    cmd = 'gpio clear ' + gpio_pin_adr
+    cmd = f'gpio clear {gpio_pin_adr}'
     response = u_boot_console.run_command(cmd)
     good_response = gpio_clear_value
     assert good_response in response
@@ -180,12 +180,12 @@ def test_gpio_toggle_generic(u_boot_console):
     gpio_set_value = f['gpio_set_value'];
     gpio_clear_value = f['gpio_clear_value'];
 
-    cmd = 'gpio set ' + gpio_pin_adr
+    cmd = f'gpio set {gpio_pin_adr}'
     response = u_boot_console.run_command(cmd)
     good_response = gpio_set_value
     assert good_response in response
 
-    cmd = 'gpio toggle ' + gpio_pin_adr
+    cmd = f'gpio toggle {gpio_pin_adr}'
     response = u_boot_console.run_command(cmd)
     good_response = gpio_clear_value
     assert good_response in response
@@ -208,7 +208,7 @@ def test_gpio_input_generic(u_boot_console):
     gpio_clear_value = f['gpio_clear_value'];
 
 
-    cmd = 'gpio input ' + gpio_pin_adr
+    cmd = f'gpio input {gpio_pin_adr}'
     response = u_boot_console.run_command(cmd)
     good_response = gpio_clear_value
     assert good_response in response
@@ -218,7 +218,7 @@ def test_gpio_input_generic(u_boot_console):
     gpio_set_value = f['gpio_set_value'];
 
 
-    cmd = 'gpio input ' + gpio_pin_adr
+    cmd = f'gpio input {gpio_pin_adr}'
     response = u_boot_console.run_command(cmd)
     good_response = gpio_set_value
     assert good_response in response
