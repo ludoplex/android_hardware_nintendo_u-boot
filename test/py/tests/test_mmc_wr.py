@@ -66,7 +66,7 @@ def test_mmc_wr(u_boot_console, env__mmc_wr_config):
     dst_addr = '0x%08x' % (ram_base + count_bytes)
 
 
-    for i in range(test_iterations):
+    for _ in range(test_iterations):
         # Generate random data
         cmd = 'random %s %x' % (src_addr, count_bytes)
         response = u_boot_console.run_command(cmd)
@@ -79,10 +79,7 @@ def test_mmc_wr(u_boot_console, env__mmc_wr_config):
             cmd += ' %d' % partid
         response = u_boot_console.run_command(cmd)
         assert 'no card present' not in response
-        if is_emmc:
-            partid_response = "(part %d)" % partid
-        else:
-            partid_response = ""
+        partid_response = "(part %d)" % partid if is_emmc else ""
         good_response = 'mmc%d%s is current device' % (devid, partid_response)
         assert good_response in response
 

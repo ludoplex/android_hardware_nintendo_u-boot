@@ -207,10 +207,10 @@ def get_type_uuid(fip_type_or_uuid):
     """
     if isinstance(fip_type_or_uuid, str):
         fip_type = fip_type_or_uuid
-        lookup = FIP_TYPES.get(fip_type)
-        if not lookup:
+        if lookup := FIP_TYPES.get(fip_type):
+            uuid = lookup.uuid
+        else:
             raise ValueError(f"Unknown FIP entry type '{fip_type}'")
-        uuid = lookup.uuid
     else:
         fip_type = None
         uuid = fip_type_or_uuid
@@ -448,21 +448,18 @@ def parse_macros(srcdir):
     comment = None
     for linenum, line in enumerate(data.splitlines()):
         if line.startswith('/*'):
-            mat = re_comment.match(line)
-            if mat:
+            if mat := re_comment.match(line):
                 comment = mat.group(1)
-        else:
-            # Example: #define UUID_TOS_FW_CONFIG \
-            if 'UUID' in line:
-                macro = line.split()[1]
-            elif '{{' in line:
-                mat = re_uuid.findall(line)
-                if not mat or len(mat) != 16:
-                    raise ValueError(
-                        f'{fname}: Cannot parse UUID line {linenum + 1}: Got matches: {mat}')
+        elif 'UUID' in line:
+            macro = line.split()[1]
+        elif '{{' in line:
+            mat = re_uuid.findall(line)
+            if not mat or len(mat) != 16:
+                raise ValueError(
+                    f'{fname}: Cannot parse UUID line {linenum + 1}: Got matches: {mat}')
 
-                uuid = bytes([int(val, 16) for val in mat])
-                macros[macro] = comment, macro, uuid
+            uuid = bytes(int(val, 16) for val in mat)
+            macros[macro] = comment, macro, uuid
     if not macros:
         raise ValueError(f'{fname}: Cannot parse file')
     return macros
@@ -491,17 +488,10 @@ def parse_names(srcdir):
     fname = os.path.join(srcdir, 'tools/fiptool/tbbr_config.c')
     data = tools.read_file(fname, binary=False)
 
-    # Example entry:
-    #   {
-    #       .name = "Secure Payload BL32 Extra2 (Trusted OS Extra2)",
-    #       .uuid = UUID_SECURE_PAYLOAD_BL32_EXTRA2,
-    #       .cmdline_name = "tos-fw-extra2"
-    #   },
-    mat = re_data.findall(data)
-    if not mat:
+    if mat := re_data.findall(data):
+        return {uuid: (desc, uuid, name) for desc, uuid, name in mat}
+    else:
         raise ValueError(f'{fname}: Cannot parse file')
-    names = {uuid: (desc, uuid, name) for desc, uuid, name in mat}
-    return names
 
 
 def create_code_output(macros, names):

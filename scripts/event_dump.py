@@ -3,6 +3,7 @@
 
 """Decode the evspy_info linker list in a U-Boot ELF image"""
 
+
 from argparse import ArgumentParser
 import os
 import re
@@ -18,7 +19,7 @@ from binman import elf
 from patman import tools
 
 PREFIX = '_u_boot_list_2_evspy_info_2_'
-RE_EVTYPE = re.compile('%s(.*)' % PREFIX)
+RE_EVTYPE = re.compile(f'{PREFIX}(.*)')
 
 def show_sym(fname, data, endian, evtype, sym):
     """Show information about an evspy entry
@@ -33,8 +34,7 @@ def show_sym(fname, data, endian, evtype, sym):
     def _unpack_val(sym_data, offset):
         start = offset * func_size
         val_data = sym_data[start:start + func_size]
-        fmt = '%s%s' % ('>' if endian == 'big' else '<',
-                        'L' if func_size == 4 else 'Q')
+        fmt = f"{'>' if endian == 'big' else '<'}{'L' if func_size == 4 else 'Q'}"
         val = struct.unpack(fmt, val_data)[0]
         return val
 

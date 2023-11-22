@@ -57,7 +57,7 @@ def pytest_configure(config):
 
     supported_fs = config.getoption('fs_type')
     if supported_fs:
-        print('*** FS TYPE modified: %s' % supported_fs)
+        print(f'*** FS TYPE modified: {supported_fs}')
         supported_fs_basic =  intersect(supported_fs, supported_fs_basic)
         supported_fs_ext =  intersect(supported_fs, supported_fs_ext)
         supported_fs_mkdir =  intersect(supported_fs, supported_fs_mkdir)
@@ -108,10 +108,7 @@ def fstype_to_ubname(fs_type):
     Return:
         A corresponding string for file system type.
     """
-    if re.match('fat', fs_type):
-        return 'fat'
-    else:
-        return fs_type
+    return 'fat' if re.match('fat', fs_type) else fs_type
 
 def check_ubconfig(config, fs_type):
     """Check whether a file system is enabled in u-boot configuration.
@@ -126,11 +123,10 @@ def check_ubconfig(config, fs_type):
     Return:
         Nothing.
     """
-    if not config.buildconfig.get('config_cmd_%s' % fs_type, None):
-        pytest.skip('.config feature "CMD_%s" not enabled' % fs_type.upper())
-    if not config.buildconfig.get('config_%s_write' % fs_type, None):
-        pytest.skip('.config feature "%s_WRITE" not enabled'
-        % fs_type.upper())
+    if not config.buildconfig.get(f'config_cmd_{fs_type}', None):
+        pytest.skip(f'.config feature "CMD_{fs_type.upper()}" not enabled')
+    if not config.buildconfig.get(f'config_{fs_type}_write', None):
+        pytest.skip(f'.config feature "{fs_type.upper()}_WRITE" not enabled')
 
 def mk_fs(config, fs_type, size, id):
     """Create a file system volume.
@@ -143,8 +139,8 @@ def mk_fs(config, fs_type, size, id):
     Return:
         Nothing.
     """
-    fs_img = '%s.%s.img' % (id, fs_type)
-    fs_img = config.persistent_data_dir + '/' + fs_img
+    fs_img = f'{id}.{fs_type}.img'
+    fs_img = f'{config.persistent_data_dir}/{fs_img}'
 
     if fs_type == 'fat16':
         mkfs_opt = '-F 16'
@@ -153,30 +149,25 @@ def mk_fs(config, fs_type, size, id):
     else:
         mkfs_opt = ''
 
-    if re.match('fat', fs_type):
-        fs_lnxtype = 'vfat'
-    else:
-        fs_lnxtype = fs_type
-
+    fs_lnxtype = 'vfat' if re.match('fat', fs_type) else fs_type
     count = (size + 1048576 - 1) / 1048576
 
     # Some distributions do not add /sbin to the default PATH, where mkfs lives
     if '/sbin' not in os.environ["PATH"].split(os.pathsep):
-        os.environ["PATH"] += os.pathsep + '/sbin'
+        os.environ["PATH"] += f'{os.pathsep}/sbin'
 
     try:
-        check_call('rm -f %s' % fs_img, shell=True)
+        check_call(f'rm -f {fs_img}', shell=True)
         check_call('dd if=/dev/zero of=%s bs=1M count=%d'
             % (fs_img, count), shell=True)
-        check_call('mkfs.%s %s %s'
-            % (fs_lnxtype, mkfs_opt, fs_img), shell=True)
+        check_call(f'mkfs.{fs_lnxtype} {mkfs_opt} {fs_img}', shell=True)
         if fs_type == 'ext4':
-            sb_content = check_output('tune2fs -l %s' % fs_img, shell=True).decode()
+            sb_content = check_output(f'tune2fs -l {fs_img}', shell=True).decode()
             if 'metadata_csum' in sb_content:
-                check_call('tune2fs -O ^metadata_csum %s' % fs_img, shell=True)
+                check_call(f'tune2fs -O ^metadata_csum {fs_img}', shell=True)
         return fs_img
     except CalledProcessError:
-        call('rm -f %s' % fs_img, shell=True)
+        call(f'rm -f {fs_img}', shell=True)
         raise
 
 # from test/py/conftest.py
@@ -211,8 +202,10 @@ def mount_fs(fs_type, device, mount_point):
     global fuse_mounted
 
     try:
-        check_call('guestmount --pid-file guestmount.pid -a %s -m /dev/sda %s'
-            % (device, mount_point), shell=True)
+        check_call(
+            f'guestmount --pid-file guestmount.pid -a {device} -m /dev/sda {mount_point}',
+            shell=True,
+        )
         fuse_mounted = True
         return
     except CalledProcessError:
@@ -222,11 +215,10 @@ def mount_fs(fs_type, device, mount_point):
     if re.match('fat', fs_type):
         mount_opt += ',umask=0000'
 
-    check_call('sudo mount -o %s %s %s'
-        % (mount_opt, device, mount_point), shell=True)
+    check_call(f'sudo mount -o {mount_opt} {device} {mount_point}', shell=True)
 
     # may not be effective for some file systems
-    check_call('sudo chmod a+rw %s' % mount_point, shell=True)
+    check_call(f'sudo chmod a+rw {mount_point}', shell=True)
 
 def umount_fs(mount_point):
     """Unmount a volume.
@@ -239,7 +231,7 @@ def umount_fs(mount_point):
     """
     if fuse_mounted:
         call('sync')
-        call('guestunmount %s' % mount_point, shell=True)
+        call(f'guestunmount {mount_point}', shell=True)
 
         try:
             with open("guestmount.pid", "r") as pidfile:
@@ -251,7 +243,7 @@ def umount_fs(mount_point):
             pass
 
     else:
-        call('sudo umount %s' % mount_point, shell=True)
+        call(f'sudo umount {mount_point}', shell=True)
 
 #
 # Fixture for basic fs test
@@ -275,53 +267,60 @@ def fs_obj_basic(request, u_boot_config):
     fs_ubtype = fstype_to_ubname(fs_type)
     check_ubconfig(u_boot_config, fs_ubtype)
 
-    mount_dir = u_boot_config.persistent_data_dir + '/mnt'
+    mount_dir = f'{u_boot_config.persistent_data_dir}/mnt'
 
-    small_file = mount_dir + '/' + SMALL_FILE
-    big_file = mount_dir + '/' + BIG_FILE
+    small_file = f'{mount_dir}/{SMALL_FILE}'
+    big_file = f'{mount_dir}/{BIG_FILE}'
 
     try:
 
         # 3GiB volume
         fs_img = mk_fs(u_boot_config, fs_type, 0xc0000000, '3GB')
     except CalledProcessError as err:
-        pytest.skip('Creating failed for filesystem: ' + fs_type + '. {}'.format(err))
+        pytest.skip(f'Creating failed for filesystem: {fs_type}' + f'. {err}')
         return
 
     try:
-        check_call('mkdir -p %s' % mount_dir, shell=True)
+        check_call(f'mkdir -p {mount_dir}', shell=True)
     except CalledProcessError as err:
-        pytest.skip('Preparing mount folder failed for filesystem: ' + fs_type + '. {}'.format(err))
-        call('rm -f %s' % fs_img, shell=True)
+        pytest.skip(
+            f'Preparing mount folder failed for filesystem: {fs_type}'
+            + f'. {err}'
+        )
+        call(f'rm -f {fs_img}', shell=True)
         return
 
     try:
         # Mount the image so we can populate it.
         mount_fs(fs_type, fs_img, mount_dir)
     except CalledProcessError as err:
-        pytest.skip('Mounting to folder failed for filesystem: ' + fs_type + '. {}'.format(err))
-        call('rmdir %s' % mount_dir, shell=True)
-        call('rm -f %s' % fs_img, shell=True)
+        pytest.skip(
+            f'Mounting to folder failed for filesystem: {fs_type}' + f'. {err}'
+        )
+        call(f'rmdir {mount_dir}', shell=True)
+        call(f'rm -f {fs_img}', shell=True)
         return
 
     try:
         # Create a subdirectory.
-        check_call('mkdir %s/SUBDIR' % mount_dir, shell=True)
+        check_call(f'mkdir {mount_dir}/SUBDIR', shell=True)
 
         # Create big file in this image.
         # Note that we work only on the start 1MB, couple MBs in the 2GB range
         # and the last 1 MB of the huge 2.5GB file.
         # So, just put random values only in those areas.
-        check_call('dd if=/dev/urandom of=%s bs=1M count=1'
-	    % big_file, shell=True)
-        check_call('dd if=/dev/urandom of=%s bs=1M count=2 seek=2047'
-            % big_file, shell=True)
-        check_call('dd if=/dev/urandom of=%s bs=1M count=1 seek=2499'
-            % big_file, shell=True)
+        check_call(f'dd if=/dev/urandom of={big_file} bs=1M count=1', shell=True)
+        check_call(
+            f'dd if=/dev/urandom of={big_file} bs=1M count=2 seek=2047',
+            shell=True,
+        )
+        check_call(
+            f'dd if=/dev/urandom of={big_file} bs=1M count=1 seek=2499',
+            shell=True,
+        )
 
         # Create a small file in this image.
-        check_call('dd if=/dev/urandom of=%s bs=1M count=1'
-	    % small_file, shell=True)
+        check_call(f'dd if=/dev/urandom of={small_file} bs=1M count=1', shell=True)
 
         # Delete the small file copies which possibly are written as part of a
         # previous test.
@@ -330,51 +329,57 @@ def fs_obj_basic(request, u_boot_config):
 
         # Generate the md5sums of reads that we will test against small file
         out = check_output(
-            'dd if=%s bs=1M skip=0 count=1 2> /dev/null | md5sum'
-	    % small_file, shell=True).decode()
+            f'dd if={small_file} bs=1M skip=0 count=1 2> /dev/null | md5sum',
+            shell=True,
+        ).decode()
         md5val = [ out.split()[0] ]
 
         # Generate the md5sums of reads that we will test against big file
         # One from beginning of file.
         out = check_output(
-            'dd if=%s bs=1M skip=0 count=1 2> /dev/null | md5sum'
-	    % big_file, shell=True).decode()
+            f'dd if={big_file} bs=1M skip=0 count=1 2> /dev/null | md5sum',
+            shell=True,
+        ).decode()
         md5val.append(out.split()[0])
 
         # One from end of file.
         out = check_output(
-            'dd if=%s bs=1M skip=2499 count=1 2> /dev/null | md5sum'
-	    % big_file, shell=True).decode()
+            f'dd if={big_file} bs=1M skip=2499 count=1 2> /dev/null | md5sum',
+            shell=True,
+        ).decode()
         md5val.append(out.split()[0])
 
         # One from the last 1MB chunk of 2GB
         out = check_output(
-            'dd if=%s bs=1M skip=2047 count=1 2> /dev/null | md5sum'
-	    % big_file, shell=True).decode()
+            f'dd if={big_file} bs=1M skip=2047 count=1 2> /dev/null | md5sum',
+            shell=True,
+        ).decode()
         md5val.append(out.split()[0])
 
         # One from the start 1MB chunk from 2GB
         out = check_output(
-            'dd if=%s bs=1M skip=2048 count=1 2> /dev/null | md5sum'
-	    % big_file, shell=True).decode()
+            f'dd if={big_file} bs=1M skip=2048 count=1 2> /dev/null | md5sum',
+            shell=True,
+        ).decode()
         md5val.append(out.split()[0])
 
         # One 1MB chunk crossing the 2GB boundary
         out = check_output(
-            'dd if=%s bs=512K skip=4095 count=2 2> /dev/null | md5sum'
-	    % big_file, shell=True).decode()
+            f'dd if={big_file} bs=512K skip=4095 count=2 2> /dev/null | md5sum',
+            shell=True,
+        ).decode()
         md5val.append(out.split()[0])
 
     except CalledProcessError as err:
-        pytest.skip('Setup failed for filesystem: ' + fs_type + '. {}'.format(err))
+        pytest.skip(f'Setup failed for filesystem: {fs_type}' + f'. {err}')
         umount_fs(mount_dir)
         return
     else:
         umount_fs(mount_dir)
         yield [fs_ubtype, fs_img, md5val]
     finally:
-        call('rmdir %s' % mount_dir, shell=True)
-        call('rm -f %s' % fs_img, shell=True)
+        call(f'rmdir {mount_dir}', shell=True)
+        call(f'rm -f {fs_img}', shell=True)
 
 #
 # Fixture for extended fs test
@@ -397,85 +402,89 @@ def fs_obj_ext(request, u_boot_config):
     fs_ubtype = fstype_to_ubname(fs_type)
     check_ubconfig(u_boot_config, fs_ubtype)
 
-    mount_dir = u_boot_config.persistent_data_dir + '/mnt'
+    mount_dir = f'{u_boot_config.persistent_data_dir}/mnt'
 
-    min_file = mount_dir + '/' + MIN_FILE
-    tmp_file = mount_dir + '/tmpfile'
+    min_file = f'{mount_dir}/{MIN_FILE}'
+    tmp_file = f'{mount_dir}/tmpfile'
 
     try:
 
         # 128MiB volume
         fs_img = mk_fs(u_boot_config, fs_type, 0x8000000, '128MB')
     except CalledProcessError as err:
-        pytest.skip('Creating failed for filesystem: ' + fs_type + '. {}'.format(err))
+        pytest.skip(f'Creating failed for filesystem: {fs_type}' + f'. {err}')
         return
 
     try:
-        check_call('mkdir -p %s' % mount_dir, shell=True)
+        check_call(f'mkdir -p {mount_dir}', shell=True)
     except CalledProcessError as err:
-        pytest.skip('Preparing mount folder failed for filesystem: ' + fs_type + '. {}'.format(err))
-        call('rm -f %s' % fs_img, shell=True)
+        pytest.skip(
+            f'Preparing mount folder failed for filesystem: {fs_type}'
+            + f'. {err}'
+        )
+        call(f'rm -f {fs_img}', shell=True)
         return
 
     try:
         # Mount the image so we can populate it.
         mount_fs(fs_type, fs_img, mount_dir)
     except CalledProcessError as err:
-        pytest.skip('Mounting to folder failed for filesystem: ' + fs_type + '. {}'.format(err))
-        call('rmdir %s' % mount_dir, shell=True)
-        call('rm -f %s' % fs_img, shell=True)
+        pytest.skip(
+            f'Mounting to folder failed for filesystem: {fs_type}' + f'. {err}'
+        )
+        call(f'rmdir {mount_dir}', shell=True)
+        call(f'rm -f {fs_img}', shell=True)
         return
 
     try:
         # Create a test directory
-        check_call('mkdir %s/dir1' % mount_dir, shell=True)
+        check_call(f'mkdir {mount_dir}/dir1', shell=True)
 
         # Create a small file and calculate md5
-        check_call('dd if=/dev/urandom of=%s bs=1K count=20'
-            % min_file, shell=True)
+        check_call(f'dd if=/dev/urandom of={min_file} bs=1K count=20', shell=True)
         out = check_output(
-            'dd if=%s bs=1K 2> /dev/null | md5sum'
-            % min_file, shell=True).decode()
+            f'dd if={min_file} bs=1K 2> /dev/null | md5sum', shell=True
+        ).decode()
         md5val = [ out.split()[0] ]
 
         # Calculate md5sum of Test Case 4
-        check_call('dd if=%s of=%s bs=1K count=20'
-            % (min_file, tmp_file), shell=True)
-        check_call('dd if=%s of=%s bs=1K seek=5 count=20'
-            % (min_file, tmp_file), shell=True)
-        out = check_output('dd if=%s bs=1K 2> /dev/null | md5sum'
-            % tmp_file, shell=True).decode()
+        check_call(f'dd if={min_file} of={tmp_file} bs=1K count=20', shell=True)
+        check_call(f'dd if={min_file} of={tmp_file} bs=1K seek=5 count=20', shell=True)
+        out = check_output(
+            f'dd if={tmp_file} bs=1K 2> /dev/null | md5sum', shell=True
+        ).decode()
         md5val.append(out.split()[0])
 
         # Calculate md5sum of Test Case 5
-        check_call('dd if=%s of=%s bs=1K count=20'
-            % (min_file, tmp_file), shell=True)
-        check_call('dd if=%s of=%s bs=1K seek=5 count=5'
-            % (min_file, tmp_file), shell=True)
-        out = check_output('dd if=%s bs=1K 2> /dev/null | md5sum'
-            % tmp_file, shell=True).decode()
+        check_call(f'dd if={min_file} of={tmp_file} bs=1K count=20', shell=True)
+        check_call(f'dd if={min_file} of={tmp_file} bs=1K seek=5 count=5', shell=True)
+        out = check_output(
+            f'dd if={tmp_file} bs=1K 2> /dev/null | md5sum', shell=True
+        ).decode()
         md5val.append(out.split()[0])
 
         # Calculate md5sum of Test Case 7
-        check_call('dd if=%s of=%s bs=1K count=20'
-            % (min_file, tmp_file), shell=True)
-        check_call('dd if=%s of=%s bs=1K seek=20 count=20'
-            % (min_file, tmp_file), shell=True)
-        out = check_output('dd if=%s bs=1K 2> /dev/null | md5sum'
-            % tmp_file, shell=True).decode()
+        check_call(f'dd if={min_file} of={tmp_file} bs=1K count=20', shell=True)
+        check_call(
+            f'dd if={min_file} of={tmp_file} bs=1K seek=20 count=20',
+            shell=True,
+        )
+        out = check_output(
+            f'dd if={tmp_file} bs=1K 2> /dev/null | md5sum', shell=True
+        ).decode()
         md5val.append(out.split()[0])
 
-        check_call('rm %s' % tmp_file, shell=True)
+        check_call(f'rm {tmp_file}', shell=True)
     except CalledProcessError:
-        pytest.skip('Setup failed for filesystem: ' + fs_type)
+        pytest.skip(f'Setup failed for filesystem: {fs_type}')
         umount_fs(mount_dir)
         return
     else:
         umount_fs(mount_dir)
         yield [fs_ubtype, fs_img, md5val]
     finally:
-        call('rmdir %s' % mount_dir, shell=True)
-        call('rm -f %s' % fs_img, shell=True)
+        call(f'rmdir {mount_dir}', shell=True)
+        call(f'rm -f {fs_img}', shell=True)
 
 #
 # Fixture for mkdir test
@@ -502,11 +511,11 @@ def fs_obj_mkdir(request, u_boot_config):
         # 128MiB volume
         fs_img = mk_fs(u_boot_config, fs_type, 0x8000000, '128MB')
     except:
-        pytest.skip('Setup failed for filesystem: ' + fs_type)
+        pytest.skip(f'Setup failed for filesystem: {fs_type}')
         return
     else:
         yield [fs_ubtype, fs_img]
-    call('rm -f %s' % fs_img, shell=True)
+    call(f'rm -f {fs_img}', shell=True)
 
 #
 # Fixture for unlink test
@@ -529,64 +538,75 @@ def fs_obj_unlink(request, u_boot_config):
     fs_ubtype = fstype_to_ubname(fs_type)
     check_ubconfig(u_boot_config, fs_ubtype)
 
-    mount_dir = u_boot_config.persistent_data_dir + '/mnt'
+    mount_dir = f'{u_boot_config.persistent_data_dir}/mnt'
 
     try:
 
         # 128MiB volume
         fs_img = mk_fs(u_boot_config, fs_type, 0x8000000, '128MB')
     except CalledProcessError as err:
-        pytest.skip('Creating failed for filesystem: ' + fs_type + '. {}'.format(err))
+        pytest.skip(f'Creating failed for filesystem: {fs_type}' + f'. {err}')
         return
 
     try:
-        check_call('mkdir -p %s' % mount_dir, shell=True)
+        check_call(f'mkdir -p {mount_dir}', shell=True)
     except CalledProcessError as err:
-        pytest.skip('Preparing mount folder failed for filesystem: ' + fs_type + '. {}'.format(err))
-        call('rm -f %s' % fs_img, shell=True)
+        pytest.skip(
+            f'Preparing mount folder failed for filesystem: {fs_type}'
+            + f'. {err}'
+        )
+        call(f'rm -f {fs_img}', shell=True)
         return
 
     try:
         # Mount the image so we can populate it.
         mount_fs(fs_type, fs_img, mount_dir)
     except CalledProcessError as err:
-        pytest.skip('Mounting to folder failed for filesystem: ' + fs_type + '. {}'.format(err))
-        call('rmdir %s' % mount_dir, shell=True)
-        call('rm -f %s' % fs_img, shell=True)
+        pytest.skip(
+            f'Mounting to folder failed for filesystem: {fs_type}' + f'. {err}'
+        )
+        call(f'rmdir {mount_dir}', shell=True)
+        call(f'rm -f {fs_img}', shell=True)
         return
 
     try:
         # Test Case 1 & 3
-        check_call('mkdir %s/dir1' % mount_dir, shell=True)
-        check_call('dd if=/dev/urandom of=%s/dir1/file1 bs=1K count=1'
-                                    % mount_dir, shell=True)
-        check_call('dd if=/dev/urandom of=%s/dir1/file2 bs=1K count=1'
-                                    % mount_dir, shell=True)
+        check_call(f'mkdir {mount_dir}/dir1', shell=True)
+        check_call(
+            f'dd if=/dev/urandom of={mount_dir}/dir1/file1 bs=1K count=1',
+            shell=True,
+        )
+        check_call(
+            f'dd if=/dev/urandom of={mount_dir}/dir1/file2 bs=1K count=1',
+            shell=True,
+        )
 
         # Test Case 2
-        check_call('mkdir %s/dir2' % mount_dir, shell=True)
+        check_call(f'mkdir {mount_dir}/dir2', shell=True)
         for i in range(0, 20):
             check_call('mkdir %s/dir2/0123456789abcdef%02x'
                                     % (mount_dir, i), shell=True)
 
         # Test Case 4
-        check_call('mkdir %s/dir4' % mount_dir, shell=True)
+        check_call(f'mkdir {mount_dir}/dir4', shell=True)
 
         # Test Case 5, 6 & 7
-        check_call('mkdir %s/dir5' % mount_dir, shell=True)
-        check_call('dd if=/dev/urandom of=%s/dir5/file1 bs=1K count=1'
-                                    % mount_dir, shell=True)
+        check_call(f'mkdir {mount_dir}/dir5', shell=True)
+        check_call(
+            f'dd if=/dev/urandom of={mount_dir}/dir5/file1 bs=1K count=1',
+            shell=True,
+        )
 
     except CalledProcessError:
-        pytest.skip('Setup failed for filesystem: ' + fs_type)
+        pytest.skip(f'Setup failed for filesystem: {fs_type}')
         umount_fs(mount_dir)
         return
     else:
         umount_fs(mount_dir)
         yield [fs_ubtype, fs_img]
     finally:
-        call('rmdir %s' % mount_dir, shell=True)
-        call('rm -f %s' % fs_img, shell=True)
+        call(f'rmdir {mount_dir}', shell=True)
+        call(f'rm -f {fs_img}', shell=True)
 
 #
 # Fixture for symlink fs test
@@ -609,64 +629,69 @@ def fs_obj_symlink(request, u_boot_config):
     fs_ubtype = fstype_to_ubname(fs_type)
     check_ubconfig(u_boot_config, fs_ubtype)
 
-    mount_dir = u_boot_config.persistent_data_dir + '/mnt'
+    mount_dir = f'{u_boot_config.persistent_data_dir}/mnt'
 
-    small_file = mount_dir + '/' + SMALL_FILE
-    medium_file = mount_dir + '/' + MEDIUM_FILE
+    small_file = f'{mount_dir}/{SMALL_FILE}'
+    medium_file = f'{mount_dir}/{MEDIUM_FILE}'
 
     try:
 
         # 1GiB volume
         fs_img = mk_fs(u_boot_config, fs_type, 0x40000000, '1GB')
     except CalledProcessError as err:
-        pytest.skip('Creating failed for filesystem: ' + fs_type + '. {}'.format(err))
+        pytest.skip(f'Creating failed for filesystem: {fs_type}' + f'. {err}')
         return
 
     try:
-        check_call('mkdir -p %s' % mount_dir, shell=True)
+        check_call(f'mkdir -p {mount_dir}', shell=True)
     except CalledProcessError as err:
-        pytest.skip('Preparing mount folder failed for filesystem: ' + fs_type + '. {}'.format(err))
-        call('rm -f %s' % fs_img, shell=True)
+        pytest.skip(
+            f'Preparing mount folder failed for filesystem: {fs_type}'
+            + f'. {err}'
+        )
+        call(f'rm -f {fs_img}', shell=True)
         return
 
     try:
         # Mount the image so we can populate it.
         mount_fs(fs_type, fs_img, mount_dir)
     except CalledProcessError as err:
-        pytest.skip('Mounting to folder failed for filesystem: ' + fs_type + '. {}'.format(err))
-        call('rmdir %s' % mount_dir, shell=True)
-        call('rm -f %s' % fs_img, shell=True)
+        pytest.skip(
+            f'Mounting to folder failed for filesystem: {fs_type}' + f'. {err}'
+        )
+        call(f'rmdir {mount_dir}', shell=True)
+        call(f'rm -f {fs_img}', shell=True)
         return
 
     try:
         # Create a subdirectory.
-        check_call('mkdir %s/SUBDIR' % mount_dir, shell=True)
+        check_call(f'mkdir {mount_dir}/SUBDIR', shell=True)
 
         # Create a small file in this image.
-        check_call('dd if=/dev/urandom of=%s bs=1M count=1'
-                   % small_file, shell=True)
+        check_call(f'dd if=/dev/urandom of={small_file} bs=1M count=1', shell=True)
 
         # Create a medium file in this image.
-        check_call('dd if=/dev/urandom of=%s bs=10M count=1'
-                   % medium_file, shell=True)
+        check_call(f'dd if=/dev/urandom of={medium_file} bs=10M count=1', shell=True)
 
         # Generate the md5sums of reads that we will test against small file
         out = check_output(
-            'dd if=%s bs=1M skip=0 count=1 2> /dev/null | md5sum'
-            % small_file, shell=True).decode()
+            f'dd if={small_file} bs=1M skip=0 count=1 2> /dev/null | md5sum',
+            shell=True,
+        ).decode()
         md5val = [out.split()[0]]
         out = check_output(
-            'dd if=%s bs=10M skip=0 count=1 2> /dev/null | md5sum'
-            % medium_file, shell=True).decode()
+            f'dd if={medium_file} bs=10M skip=0 count=1 2> /dev/null | md5sum',
+            shell=True,
+        ).decode()
         md5val.extend([out.split()[0]])
 
     except CalledProcessError:
-        pytest.skip('Setup failed for filesystem: ' + fs_type)
+        pytest.skip(f'Setup failed for filesystem: {fs_type}')
         umount_fs(mount_dir)
         return
     else:
         umount_fs(mount_dir)
         yield [fs_ubtype, fs_img, md5val]
     finally:
-        call('rmdir %s' % mount_dir, shell=True)
-        call('rm -f %s' % fs_img, shell=True)
+        call(f'rmdir {mount_dir}', shell=True)
+        call(f'rm -f {fs_img}', shell=True)

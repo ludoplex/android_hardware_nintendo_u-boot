@@ -50,7 +50,7 @@ def test_pinmux_dev_bad(u_boot_console):
     """Test that 'pinmux dev' returns an error when trying to select a
     wrong pin controller."""
     pincontroller = 'bad_pin_controller_name'
-    output = u_boot_console.run_command('pinmux dev ' + pincontroller)
+    output = u_boot_console.run_command(f'pinmux dev {pincontroller}')
     expected_output = 'Can\'t get the pin-controller: ' + pincontroller + '!'
     assert (expected_output in output)
 
@@ -59,8 +59,8 @@ def test_pinmux_dev_bad(u_boot_console):
 def test_pinmux_dev(u_boot_console):
     """Test that 'pinmux dev' select the wanted pin controller."""
     pincontroller = 'pinctrl'
-    output = u_boot_console.run_command('pinmux dev ' + pincontroller)
-    expected_output = 'dev: ' + pincontroller
+    output = u_boot_console.run_command(f'pinmux dev {pincontroller}')
+    expected_output = f'dev: {pincontroller}'
     assert (expected_output in output)
 
 @pytest.mark.buildconfigspec('cmd_pinmux')
@@ -70,8 +70,8 @@ def test_pinmux_status(u_boot_console):
     muxing descriptions."""
     output = u_boot_console.run_command('pinmux status')
 
-    assert (not 'pinctrl-gpio:' in output)
-    assert (not 'pinctrl:' in output)
+    assert 'pinctrl-gpio:' not in output
+    assert 'pinctrl:' not in output
 
     assert ('P0        : UART TX.' in output)
     assert ('P1        : UART RX.' in output)

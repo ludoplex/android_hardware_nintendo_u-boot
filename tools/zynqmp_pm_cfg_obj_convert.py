@@ -258,7 +258,7 @@ num_re   = re.compile(r"^([0-9]+)U?$")
 const_re = re.compile(r"^([A-Z_][A-Z0-9_]*)$")
 
 def process_item(item):
-    logging.debug("* ITEM   " + item)
+    logging.debug(f"* ITEM   {item}")
 
     value = 0
     for item in item.split('|'):
@@ -269,18 +269,18 @@ def process_item(item):
 
         if num_match:
             num = int(num_match.group(1))
-            logging.debug("  - num  " + str(num))
+            logging.debug(f"  - num  {num}")
             value |= num
         elif const_match:
             name = const_match.group(1)
-            if not name in pm_define:
-                sys.stderr.write("Unknown define " + name + "!\n")
+            if name not in pm_define:
+                sys.stderr.write(f"Unknown define {name}" + "!\n")
                 exit(1)
             num = pm_define[name]
-            logging.debug("  - def  " + hex(num))
+            logging.debug(f"  - def  {hex(num)}")
             value |= num
 
-    logging.debug("  = res  " + hex(value))
+    logging.debug(f"  = res  {hex(value)}")
     out_file.write(struct.pack('<L', value))
 
 
@@ -296,8 +296,7 @@ code = re.search('const u32 XPm_ConfigObject.*=.*{\n(.*)};',
 
 # Process each comma-separated array item
 for item in code.split(','):
-    item = item.strip()
-    if item:
+    if item := item.strip():
         process_item(item)
 
 print("Wrote %d bytes" % out_file.tell())

@@ -35,8 +35,7 @@ class Entry_blob_dtb(Entry_blob):
         super().ReadNode()
         self.prepend = fdt_util.GetString(self._node, 'prepend')
         if self.prepend and self.prepend not in ['length']:
-            self.Raise("Invalid prepend in '%s': '%s'" %
-                       (self._node.name, self.prepend))
+            self.Raise(f"Invalid prepend in '{self._node.name}': '{self.prepend}'")
 
     def ObtainContents(self):
         """Get the device-tree from the list held by the 'state' module"""
@@ -87,5 +86,4 @@ class Entry_blob_dtb(Entry_blob):
         if self.prepend == 'length':
             data_len = struct.unpack('<I', indata[:4])[0]
             indata = indata[4:4 + data_len]
-        data = super().DecompressData(indata)
-        return data
+        return super().DecompressData(indata)

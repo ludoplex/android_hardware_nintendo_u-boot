@@ -192,8 +192,7 @@ class Entry_cbfs(Entry):
             entry._cbfs_offset = fdt_util.GetInt(node, 'cbfs-offset')
             entry._cbfs_compress = cbfs_util.find_compress(compress)
             if entry._cbfs_compress is None:
-                self.Raise("Invalid compression in '%s': '%s'" %
-                           (node.name, compress))
+                self.Raise(f"Invalid compression in '{node.name}': '{compress}'")
             self._entries[entry._cbfs_name] = entry
 
     def ObtainCfile(self, cbfs, entry):
@@ -209,22 +208,20 @@ class Entry_cbfs(Entry):
             cfile = cbfs.add_file_stage(entry._cbfs_name, data,
                                         entry._cbfs_offset)
         else:
-            entry.Raise("Unknown cbfs-type '%s' (use 'raw', 'stage')" %
-                        entry._type)
+            entry.Raise(f"Unknown cbfs-type '{entry._type}' (use 'raw', 'stage')")
         return cfile
 
     def ObtainContents(self, skip_entry=None):
         arch = cbfs_util.find_arch(self._cbfs_arg)
         if arch is None:
-            self.Raise("Invalid architecture '%s'" % self._cbfs_arg)
+            self.Raise(f"Invalid architecture '{self._cbfs_arg}'")
         if self.size is None:
             self.Raise("'cbfs' entry must have a size property")
         cbfs = CbfsWriter(self.size, arch)
         for entry in self._entries.values():
             if entry != skip_entry and not entry.ObtainContents():
                 return False
-            cfile = self.ObtainCfile(cbfs, entry)
-            if cfile:
+            if cfile := self.ObtainCfile(cbfs, entry):
                 entry._cbfs_file = cfile
         data = cbfs.get_data()
         self.SetContents(data)
@@ -280,8 +277,7 @@ class Entry_cbfs(Entry):
         return self._entries
 
     def ReadData(self, decomp=True, alt_format=None):
-        data = super().ReadData(True, alt_format)
-        return data
+        return super().ReadData(True, alt_format)
 
     def ReadChildData(self, child, decomp=True, alt_format=None):
         if not self.reader:

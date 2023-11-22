@@ -15,7 +15,9 @@ OVERLAY_DIR='arch/sandbox/dts/'
 
 def load_dtb(u_boot_console):
     u_boot_console.log.action('Loading devicetree to RAM...')
-    u_boot_console.run_command('host load hostfs - $fdt_addr_r %s' % (os.path.join(u_boot_console.config.build_dir, SANDBOX_DTB)))
+    u_boot_console.run_command(
+        f'host load hostfs - $fdt_addr_r {os.path.join(u_boot_console.config.build_dir, SANDBOX_DTB)}'
+    )
     u_boot_console.run_command('fdt addr $fdt_addr_r')
 
 @pytest.mark.buildconfigspec('cmd_fdt')
@@ -35,9 +37,13 @@ def test_extension(u_boot_console):
     assert('overlay0.dtbo' in output)
     assert('overlay1.dtbo' in output)
 
-    u_boot_console.run_command_list([
-        'setenv extension_overlay_addr %s' % (overlay_addr),
-        'setenv extension_overlay_cmd \'host load hostfs - ${extension_overlay_addr} %s${extension_overlay_name}\'' % (os.path.join(u_boot_console.config.build_dir, OVERLAY_DIR))])
+    u_boot_console.run_command_list(
+        [
+            f'setenv extension_overlay_addr {overlay_addr}',
+            'setenv extension_overlay_cmd \'host load hostfs - ${extension_overlay_addr} %s${extension_overlay_name}\''
+            % (os.path.join(u_boot_console.config.build_dir, OVERLAY_DIR)),
+        ]
+    )
 
     output = u_boot_console.run_command('extension apply 0')
     assert('bytes read' in output)

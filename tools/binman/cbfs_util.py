@@ -122,10 +122,9 @@ def find_arch(find_name):
     Returns:
         ARCHITECTURE_... value or None if not found
     """
-    for arch, name in ARCH_NAMES.items():
-        if name == find_name:
-            return arch
-    return None
+    return next(
+        (arch for arch, name in ARCH_NAMES.items() if name == find_name), None
+    )
 
 def find_compress(find_name):
     """Look up a compression algorithm name
@@ -136,10 +135,14 @@ def find_compress(find_name):
     Returns:
         COMPRESS_... value or None if not found
     """
-    for compress, name in COMPRESS_NAMES.items():
-        if name == find_name:
-            return compress
-    return None
+    return next(
+        (
+            compress
+            for compress, name in COMPRESS_NAMES.items()
+            if name == find_name
+        ),
+        None,
+    )
 
 def compress_name(compress):
     """Look up the name of a compression algorithm
@@ -246,10 +249,7 @@ class CbfsFile(object):
     def decompress(self):
         """Handle decompressing data if necessary"""
         indata = self.data
-        if self.comp_bintool:
-            data = self.comp_bintool.decompress(indata)
-        else:
-            data = indata
+        data = self.comp_bintool.decompress(indata) if self.comp_bintool else indata
         self.memlen = len(data)
         self.data = data
         self.data_len = len(indata)
@@ -334,9 +334,7 @@ class CbfsFile(object):
             pass
         elif self.ftype == TYPE_RAW:
             hdr_len += ATTR_COMPRESSION_LEN
-        elif self.ftype == TYPE_EMPTY:
-            pass
-        else:
+        elif self.ftype != TYPE_EMPTY:
             raise ValueError('Unknown file type %#x\n' % self.ftype)
         return hdr_len
 
@@ -498,8 +496,7 @@ class CbfsWriter(object):
         if upto > offset:
             raise ValueError('No space for data before pad offset %#x (current offset %#x)' %
                              (offset, upto))
-        todo = align_int_down(offset - upto, self._align)
-        if todo:
+        if todo := align_int_down(offset - upto, self._align):
             cbf = CbfsFile.empty(todo, self._erase_byte)
             fd.write(cbf.get_data_and_offset()[0])
         self._skip_to(fd, offset)
@@ -668,8 +665,7 @@ class CbfsReader(object):
 
             # Now read in the files one at a time
             while True:
-                cfile = self._read_next_file(fd)
-                if cfile:
+                if cfile := self._read_next_file(fd):
                     self.files[cfile.name] = cfile
                 elif cfile is False:
                     break
@@ -835,9 +831,10 @@ class CbfsReader(object):
         (self.magic, self.version, self.rom_size, self.boot_block_size,
          self.align, self.cbfs_offset, self.arch, _) = struct.unpack(
              HEADER_FORMAT, data)
-        return self.magic == HEADER_MAGIC and (
-            self.version == HEADER_VERSION1 or
-            self.version == HEADER_VERSION2)
+        return self.magic == HEADER_MAGIC and self.version in [
+            HEADER_VERSION1,
+            HEADER_VERSION2,
+        ]
 
     @classmethod
     def _read_string(cls, fd):

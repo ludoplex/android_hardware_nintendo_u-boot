@@ -227,7 +227,7 @@ def test_fit(u_boot_console):
 
     def make_compressed(filename):
         util.run_and_log(cons, ['gzip', '-f', '-k', filename])
-        return filename + '.gz'
+        return f'{filename}.gz'
 
     def find_matching(text, match):
         """Find a match in a line of text, and return the unmatched line portion
@@ -447,7 +447,8 @@ def test_fit(u_boot_console):
             check_equal(kernel, kernel_out, 'Kernel not loaded')
             check_equal(control_dtb, fdt_out, 'FDT not loaded')
             check_not_equal(ramdisk, ramdisk_out, 'Ramdisk got decompressed?')
-            check_equal(ramdisk + '.gz', ramdisk_out, 'Ramdist not loaded')
+            check_equal(f'{ramdisk}.gz', ramdisk_out, 'Ramdist not loaded')
+
 
 
     cons = u_boot_console
@@ -455,7 +456,7 @@ def test_fit(u_boot_console):
         # We need to use our own device tree file. Remember to restore it
         # afterwards.
         old_dtb = cons.config.dtb
-        mkimage = cons.config.build_dir + '/tools/mkimage'
+        mkimage = f'{cons.config.build_dir}/tools/mkimage'
         run_fit_test(mkimage)
     finally:
         # Go back to the original U-Boot with the correct dtb.

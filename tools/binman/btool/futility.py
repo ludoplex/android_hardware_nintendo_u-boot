@@ -163,14 +163,9 @@ class Bintoolfutility(bintool.Bintool):
         if method != bintool.FETCH_BUILD:
             return None
 
-        # The Chromium OS repo is here:
-        # https://chromium.googlesource.com/chromiumos/platform/vboot_reference/
-        #
-        # Unfortunately this requires logging in and obtaining a line for the
-        # .gitcookies file. So use a mirror instead.
-        result = self.build_from_git(
+        return self.build_from_git(
             'https://github.com/sjg20/vboot_reference.git',
             'all',
             'build/futility/futility',
-            flags=['USE_FLASHROM=0'])
-        return result
+            flags=['USE_FLASHROM=0'],
+        )

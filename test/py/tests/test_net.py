@@ -66,12 +66,10 @@ def test_net_pre_commands(u_boot_console):
     beginning of this file.
     """
 
-    init_usb = u_boot_console.config.env.get('env__net_uses_usb', False)
-    if init_usb:
+    if init_usb := u_boot_console.config.env.get('env__net_uses_usb', False):
         u_boot_console.run_command('usb start')
 
-    init_pci = u_boot_console.config.env.get('env__net_uses_pci', False)
-    if init_pci:
+    if init_pci := u_boot_console.config.env.get('env__net_uses_pci', False):
         u_boot_console.run_command('pci enum')
 
 @pytest.mark.buildconfigspec('cmd_dhcp')
@@ -106,7 +104,7 @@ def test_net_setup_static(u_boot_console):
         pytest.skip('No static network configuration is defined')
 
     for (var, val) in env_vars:
-        u_boot_console.run_command('setenv %s %s' % (var, val))
+        u_boot_console.run_command(f'setenv {var} {val}')
 
     global net_set_up
     net_set_up = True
@@ -148,12 +146,11 @@ def test_net_tftpboot(u_boot_console):
 
     fn = f['fn']
     if not addr:
-        output = u_boot_console.run_command('tftpboot %s' % (fn))
+        output = u_boot_console.run_command(f'tftpboot {fn}')
     else:
         output = u_boot_console.run_command('tftpboot %x %s' % (addr, fn))
     expected_text = 'Bytes transferred = '
-    sz = f.get('size', None)
-    if sz:
+    if sz := f.get('size', None):
         expected_text += '%d' % sz
     assert expected_text in output
 
@@ -192,8 +189,7 @@ def test_net_nfs(u_boot_console):
     fn = f['fn']
     output = u_boot_console.run_command('nfs %x %s' % (addr, fn))
     expected_text = 'Bytes transferred = '
-    sz = f.get('size', None)
-    if sz:
+    if sz := f.get('size', None):
         expected_text += '%d' % sz
     assert expected_text in output
 

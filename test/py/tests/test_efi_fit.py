@@ -196,7 +196,7 @@ def test_efi_fit_launch(u_boot_console):
             return False
 
         for (var, val) in env_vars:
-            cons.run_command('setenv %s %s' % (var, val))
+            cons.run_command(f'setenv {var} {val}')
         return True
 
     def make_fpath(file_name):
@@ -251,12 +251,12 @@ def test_efi_fit_launch(u_boot_console):
         }
 
         # Generate a test FDT file.
-        dts = make_fpath('test-efi-fit-%s.dts' % fdt_type)
+        dts = make_fpath(f'test-efi-fit-{fdt_type}.dts')
         with open(dts, 'w', encoding='ascii') as file:
             file.write(FDT_DATA % fdt_params)
 
         # Build the test FDT.
-        dtb = make_fpath('test-efi-fit-%s.dtb' % fdt_type)
+        dtb = make_fpath(f'test-efi-fit-{fdt_type}.dtb')
         util.run_and_log(cons, ['dtc', '-I', 'dts', '-O', 'dtb', '-o', dtb, dts])
         if comp:
             util.run_and_log(cons, ['gzip', '-f', dtb])
@@ -383,7 +383,7 @@ def test_efi_fit_launch(u_boot_console):
                            generated content.
         """
 
-        with cons.log.section('FDT=%s;COMP=%s' % (enable_fdt, enable_comp)):
+        with cons.log.section(f'FDT={enable_fdt};COMP={enable_comp}'):
             if is_sandbox:
                 fit = {
                     'dn': cons.config.build_dir,
@@ -412,7 +412,7 @@ def test_efi_fit_launch(u_boot_console):
 
                 # Copy image to TFTP root directory.
                 if fit['dn'] != cons.config.build_dir:
-                    util.run_and_log(cons, ['mv', '-f', fit_path, '%s/' % fit['dn']])
+                    util.run_and_log(cons, ['mv', '-f', fit_path, f"{fit['dn']}/"])
 
             # Load FIT image.
             addr = load_fit_from_host(fit) if is_sandbox else load_fit_from_tftp(fit)

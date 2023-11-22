@@ -46,8 +46,9 @@ class Entry_fmap(Entry):
         """
         def _AddEntries(areas, entry):
             entries = entry.GetEntries()
-            tout.debug("fmap: Add entry '%s' type '%s' (%s subentries)" %
-                       (entry.GetPath(), entry.etype, to_hex_size(entries)))
+            tout.debug(
+                f"fmap: Add entry '{entry.GetPath()}' type '{entry.etype}' ({to_hex_size(entries)} subentries)"
+            )
             if entries and entry.etype != 'cbfs':
                 # Create an area for the section, which encompasses all entries
                 # within it

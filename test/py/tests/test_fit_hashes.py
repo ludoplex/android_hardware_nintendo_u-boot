@@ -40,10 +40,7 @@ class ReadonlyFitImage(object):
     def __fdt_get_sexadecimal(self, node, prop):
         numbers = util.run_and_log(self.cons, f'fdtget -tbx {self.fit} {node} {prop}')
 
-        sexadecimal = ''
-        for num in numbers.rstrip('\n').split(' '):
-            sexadecimal += num.zfill(2)
-        return sexadecimal
+        return ''.join(num.zfill(2) for num in numbers.rstrip('\n').split(' '))
 
     def find_hashable_image_nodes(self):
         for node in self.__fdt_list('/images').split():
@@ -69,9 +66,7 @@ class ReadonlyFitImage(object):
                 if good_hash != raw_hash:
                     raise ValueError(f'{image} Borked hash: {algo}');
 
-            # Did we test all the hashes we set out to test?
-            missing_algos = kernel_hashes.keys() - algos
-            if (missing_algos):
+            if missing_algos := kernel_hashes.keys() - algos:
                 raise ValueError(f'Missing hashes from FIT: {missing_algos}')
 
 
@@ -91,8 +86,8 @@ def test_mkimage_hashes(u_boot_console):
         util.run_and_log(cons, f'dtc {datadir}/{dts} -O dtb -o {tempdir}/{dtb}')
 
     cons = u_boot_console
-    mkimage = cons.config.build_dir + '/tools/mkimage'
-    datadir = cons.config.source_dir + '/test/py/tests/vboot/'
+    mkimage = f'{cons.config.build_dir}/tools/mkimage'
+    datadir = f'{cons.config.source_dir}/test/py/tests/vboot/'
     tempdir = cons.config.result_dir
     fit_file = f'{tempdir}/test.fit'
     dtc('sandbox-kernel.dts')

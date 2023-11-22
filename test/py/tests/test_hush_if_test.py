@@ -132,7 +132,7 @@ def exec_hush_if(u_boot_console, expr, result):
             str(args))
         pytest.skip()
 
-    cmd = 'if ' + expr + '; then echo true; else echo false; fi'
+    cmd = f'if {expr}; then echo true; else echo false; fi'
     response = u_boot_console.run_command(cmd)
     assert response.strip() == str(result).lower()
 
@@ -167,7 +167,7 @@ def test_hush_if_test_host_file_exists(u_boot_console):
         pass
     assert not os.path.exists(test_file)
 
-    expr = 'test -e hostfs - ' + test_file
+    expr = f'test -e hostfs - {test_file}'
     exec_hush_if(u_boot_console, expr, False)
 
     try:
@@ -175,10 +175,10 @@ def test_hush_if_test_host_file_exists(u_boot_console):
             pass
         assert os.path.exists(test_file)
 
-        expr = 'test -e hostfs - ' + test_file
+        expr = f'test -e hostfs - {test_file}'
         exec_hush_if(u_boot_console, expr, True)
     finally:
         os.unlink(test_file)
 
-    expr = 'test -e hostfs - ' + test_file
+    expr = f'test -e hostfs - {test_file}'
     exec_hush_if(u_boot_console, expr, False)

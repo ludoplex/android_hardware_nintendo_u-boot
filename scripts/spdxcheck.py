@@ -44,11 +44,11 @@ def read_spdxdata(repo):
                 continue
 
             exception = None
-            for l in open(el.path, encoding="utf-8").readlines():
+            for l in open(el.path, encoding="utf-8"):
                 if l.startswith('Valid-License-Identifier:'):
                     lid = l.split(':')[1].strip().upper()
                     if lid in spdx.licenses:
-                        raise SPDXException(el, 'Duplicate License Identifier: %s' %lid)
+                        raise SPDXException(el, f'Duplicate License Identifier: {lid}')
                     else:
                         spdx.licenses.append(lid)
 
@@ -58,14 +58,14 @@ def read_spdxdata(repo):
 
                 elif l.startswith('SPDX-Licenses:'):
                     for lic in l.split(':')[1].upper().strip().replace(' ', '').replace('\t', '').split(','):
-                        if not lic in spdx.licenses:
-                            raise SPDXException(None, 'Exception %s missing license %s' %(exception, lic))
+                        if lic not in spdx.licenses:
+                            raise SPDXException(None, f'Exception {exception} missing license {lic}')
                         spdx.exceptions[exception].append(lic)
 
                 elif l.startswith("License-Text:"):
                     if exception:
                         if not len(spdx.exceptions[exception]):
-                            raise SPDXException(el, 'Exception %s is missing SPDX-Licenses' %exception)
+                            raise SPDXException(el, f'Exception {exception} is missing SPDX-Licenses')
                         spdx.exception_files += 1
                     else:
                         spdx.license_files += 1
@@ -100,14 +100,14 @@ class id_parser(object):
     def validate(self, tok):
         id = tok.value.upper()
         if tok.type == 'ID':
-            if not id in self.spdx.licenses:
+            if id not in self.spdx.licenses:
                 raise ParserException(tok, 'Invalid License ID')
             self.lastid = id
         elif tok.type == 'EXC':
             if id not in self.spdx.exceptions:
                 raise ParserException(tok, 'Invalid Exception ID')
             if self.lastid not in self.spdx.exceptions[id]:
-                raise ParserException(tok, 'Exception not valid for license %s' %self.lastid)
+                raise ParserException(tok, f'Exception not valid for license {self.lastid}')
             self.lastid = None
         elif tok.type != 'WITH':
             self.lastid = None

@@ -39,7 +39,8 @@ class Entry_u_boot_vpl_expanded(Entry_blob_phase):
     @classmethod
     def UseExpanded(cls, node, etype, new_etype):
         val = state.GetEntryArgBool('vpl-dtb')
-        tout.do_output(tout.INFO if val else tout.DETAIL,
-                       "Node '%s': etype '%s': %s %sselected" %
-                       (node.path, etype, new_etype, '' if val else 'not '))
+        tout.do_output(
+            tout.INFO if val else tout.DETAIL,
+            f"Node '{node.path}': etype '{etype}': {new_etype} {'' if val else 'not '}selected",
+        )
         return val

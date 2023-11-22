@@ -65,10 +65,10 @@ class Entry_vblock(Entry_collection):
             return None
 
         uniq = self.GetUniqueName()
-        output_fname = tools.get_output_filename('vblock.%s' % uniq)
-        input_fname = tools.get_output_filename('input.%s' % uniq)
+        output_fname = tools.get_output_filename(f'vblock.{uniq}')
+        input_fname = tools.get_output_filename(f'input.{uniq}')
         tools.write_file(input_fname, input_data)
-        prefix = self.keydir + '/'
+        prefix = f'{self.keydir}/'
         stdout = self.futility.sign_firmware(
             vblock=output_fname,
             keyblock=prefix + self.keyblock,
@@ -78,12 +78,10 @@ class Entry_vblock(Entry_collection):
             kernelkey=prefix + self.kernelkey,
             flags=f'{self.preamble_flags}')
         if stdout is not None:
-            data = tools.read_file(output_fname)
-        else:
-            # Bintool is missing; just use 4KB of zero data
-            self.record_missing_bintool(self.futility)
-            data = tools.get_bytes(0, 4096)
-        return data
+            return tools.read_file(output_fname)
+        # Bintool is missing; just use 4KB of zero data
+        self.record_missing_bintool(self.futility)
+        return tools.get_bytes(0, 4096)
 
     def ObtainContents(self):
         data = self.GetVblock(False)

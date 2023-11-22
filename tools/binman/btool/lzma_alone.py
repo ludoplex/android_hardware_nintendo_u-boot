@@ -106,9 +106,7 @@ class Bintoollzma_alone(bintool.Bintool):
         Raises:
             Valuerror: Fetching could not be completed
         """
-        if method != bintool.FETCH_BIN:
-            return None
-        return self.apt_install('lzma-alone')
+        return None if method != bintool.FETCH_BIN else self.apt_install('lzma-alone')
 
     def version(self):
         """Version handler

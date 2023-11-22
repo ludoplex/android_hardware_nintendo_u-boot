@@ -16,13 +16,13 @@ from patman import tools
 
 class TestFdt(unittest.TestCase):
     @classmethod
-    def setUpClass(self):
-        self._binman_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
-        self._indir = tempfile.mkdtemp(prefix='binmant.')
-        tools.prepare_output_dir(self._indir, True)
+    def setUpClass(cls):
+        cls._binman_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
+        cls._indir = tempfile.mkdtemp(prefix='binmant.')
+        tools.prepare_output_dir(cls._indir, True)
 
     @classmethod
-    def tearDownClass(self):
+    def tearDownClass(cls):
         tools._finalise_for_test()
 
     def TestFile(self, fname):

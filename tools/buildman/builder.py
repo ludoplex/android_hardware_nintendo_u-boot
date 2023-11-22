@@ -529,8 +529,7 @@ class Builder:
         line += self.col.build(self.col.RED, '%5d' % self.fail)
 
         line += ' /%-5d  ' % self.count
-        remaining = self.count - self.upto
-        if remaining:
+        if remaining := self.count - self.upto:
             line += self.col.build(self.col.MAGENTA, ' -%-5d  ' % remaining)
         else:
             line += ' ' * 8
@@ -538,7 +537,7 @@ class Builder:
         # Add our current completion time estimate
         self._AddTimestamp()
         if self._complete_delay:
-            line += '%s  : ' % self._complete_delay
+            line += f'{self._complete_delay}  : '
 
         line += target
         if not self._ide:
@@ -565,9 +564,7 @@ class Builder:
                     commit.hash, subject[:20]))
         elif not self.no_subdirs:
             commit_dir = 'current'
-        if not commit_dir:
-            return self.base_dir
-        return os.path.join(self.base_dir, commit_dir)
+        return os.path.join(self.base_dir, commit_dir) if commit_dir else self.base_dir
 
     def GetBuildDir(self, commit_upto, target):
         """Get the name of the build directory for a commit number
@@ -579,9 +576,7 @@ class Builder:
             target: Target name
         """
         output_dir = self._GetOutputDir(commit_upto)
-        if self.work_in_output:
-            return output_dir
-        return os.path.join(output_dir, target)
+        return output_dir if self.work_in_output else os.path.join(output_dir, target)
 
     def GetDoneFile(self, commit_upto, target):
         """Get the name of the done file for a commit number
@@ -609,8 +604,10 @@ class Builder:
             target: Target name
             elf_fname: Filename of elf image
         """
-        return os.path.join(self.GetBuildDir(commit_upto, target),
-                            '%s.sizes' % elf_fname.replace('/', '-'))
+        return os.path.join(
+            self.GetBuildDir(commit_upto, target),
+            f"{elf_fname.replace('/', '-')}.sizes",
+        )
 
     def GetObjdumpFile(self, commit_upto, target, elf_fname):
         """Get the name of the objdump file for a commit number and ELF file
@@ -620,8 +617,10 @@ class Builder:
             target: Target name
             elf_fname: Filename of elf image
         """
-        return os.path.join(self.GetBuildDir(commit_upto, target),
-                            '%s.objdump' % elf_fname.replace('/', '-'))
+        return os.path.join(
+            self.GetBuildDir(commit_upto, target),
+            f"{elf_fname.replace('/', '-')}.objdump",
+        )
 
     def GetErrFile(self, commit_upto, target):
         """Get the name of the err file for a commit number
@@ -787,7 +786,7 @@ class Builder:
                 # Convert size information to our simple format
                 if os.path.exists(sizes_file):
                     with open(sizes_file, 'r') as fd:
-                        for line in fd.readlines():
+                        for line in fd:
                             values = line.split()
                             rodata = 0
                             if len(values) > 6:
@@ -935,15 +934,12 @@ class Builder:
         """
         done_arch = {}
         for target in changes:
-            if target in board_dict:
-                arch = board_dict[target].arch
-            else:
-                arch = 'unknown'
-            str = self.col.build(color, ' ' + target)
-            if not arch in done_arch:
-                str = ' %s  %s' % (self.col.build(color, char), str)
+            arch = board_dict[target].arch if target in board_dict else 'unknown'
+            str = self.col.build(color, f' {target}')
+            if arch not in done_arch:
+                str = f' {self.col.build(color, char)}  {str}'
                 done_arch[arch] = True
-            if not arch in arch_list:
+            if arch not in arch_list:
                 arch_list[arch] = str
             else:
                 arch_list[arch] += str
@@ -951,9 +947,7 @@ class Builder:
 
     def ColourNum(self, num):
         color = self.col.RED if num > 0 else self.col.GREEN
-        if num == 0:
-            return '0'
-        return self.col.build(color, str(num))
+        return '0' if num == 0 else self.col.build(color, str(num))
 
     def ResetResultSummary(self, board_selected):
         """Reset the results summary ready for use.
@@ -1106,24 +1100,20 @@ class Builder:
             for image in sizes:
                 if image in base_sizes:
                     base_image = base_sizes[image]
+                    col = None
                     # Loop through the text, data, bss parts
                     for part in sorted(sizes[image]):
-                        diff = sizes[image][part] - base_image[part]
-                        col = None
-                        if diff:
-                            if image == 'u-boot':
-                                name = part
-                            else:
-                                name = image + ':' + part
+                        if diff := sizes[image][part] - base_image[part]:
+                            name = part if image == 'u-boot' else f'{image}:{part}'
                             err[name] = diff
             arch = board_selected[target].arch
-            if not arch in arch_count:
+            if arch not in arch_count:
                 arch_count[arch] = 1
             else:
                 arch_count[arch] += 1
             if not sizes:
                 pass    # Only add to our list when we have some stats
-            elif not arch in arch_list:
+            elif arch not in arch_list:
                 arch_list[arch] = [err]
             else:
                 arch_list[arch].append(err)
@@ -1149,8 +1139,7 @@ class Builder:
             count = len(target_list)
             printed_arch = False
             for name in sorted(totals):
-                diff = totals[name]
-                if diff:
+                if diff := totals[name]:
                     # Display the average difference in this name for this
                     # architecture
                     avg_diff = float(diff) / count

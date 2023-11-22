@@ -46,6 +46,7 @@ prints the mailmapping to standard output.
 will be useful for updating '.mailmap' file.
 '''
 
+
 import sys
 import os
 import subprocess
@@ -92,7 +93,7 @@ for line in shortlog.splitlines():
     try:
         line = line.decode("utf-8")
         tmp, mail = line.split('<')
-        mail = '<' + mail.rstrip()
+        mail = f'<{mail.rstrip()}'
         _, name = tmp.rstrip().split(None, 1)
     except ValueError:
         # author name is empty
@@ -123,8 +124,7 @@ try:
 except subprocess.CalledProcessError:
     config_mailmap = ''
 
-config_mailmap = config_mailmap.rstrip()
-if config_mailmap:
+if config_mailmap := config_mailmap.rstrip():
     mailmap_files.append(config_mailmap)
 
 mailmap_files.append('.mailmap')
@@ -144,18 +144,15 @@ output_lines = []
 
 if infile:
     for line in infile:
-        if line[0] == '#' or line[0] == '\n':
+        if line[0] in ['#', '\n']:
             comment_block.append(line)
         else:
             output_lines.append(line)
             break
-    for line in infile:
-        output_lines.append(line)
+    output_lines.extend(iter(infile))
     infile.close()
 
-for mail, name in output.items():
-    output_lines.append(name + ' ' + mail + '\n')
-
+output_lines.extend(f'{name} {mail}' + '\n' for mail, name in output.items())
 output_lines.sort()
 
 sys.stdout.write(''.join(comment_block + output_lines))

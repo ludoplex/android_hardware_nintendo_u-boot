@@ -64,7 +64,11 @@ class BetterStruct(metaclass=BetterStructMeta):
         return self.__struct__.pack(*[getattr(self, n) for n in self.__names__])
 
     def __str__(self):
-        items = ["'%s': %s" % (n, repr(getattr(self, n))) for n in self.__names__ if n is not None]
+        items = [
+            f"'{n}': {repr(getattr(self, n))}"
+            for n in self.__names__
+            if n is not None
+        ]
         return '(' + ', '.join(items) + ')'
 
 #
@@ -112,10 +116,7 @@ class StringsBlock:
     Represents a parsed device tree string block
     """
     def __init__(self, values=None):
-        if values is None:
-            self.values = []
-        else:
-            self.values = values
+        self.values = [] if values is None else values
 
     def __getitem__(self, at):
         if isinstance(at, str):
@@ -150,7 +151,7 @@ class Prop:
         return Prop(self.name, self.value)
 
     def __repr__(self):
-        return "<Prop(name='%s', value=%s>" % (self.name, repr(self.value))
+        return f"<Prop(name='{self.name}', value={repr(self.value)}>"
 
 class Node:
     """
@@ -171,7 +172,7 @@ class Node:
         return self.children[index]
 
     def __repr__(self):
-        return "<Node('%s'), %s, %s>" % (self.name, repr(self.props), repr(self.children))
+        return f"<Node('{self.name}'), {repr(self.props)}, {repr(self.children)}>"
 
 #
 # flat DT to memory
@@ -210,9 +211,7 @@ def parse_struct(stream):
         h = PropHeader.unpack_from(stream.read(PropHeader.size))
         length = (h.value_size + 3) & (~3)
         value = stream.read(length)[:h.value_size]
-        prop = Prop(h.name_offset, value)
-        return prop
-
+        return Prop(h.name_offset, value)
     if tag in (OF_DT_END_NODE, OF_DT_END):
         return None
 
@@ -344,10 +343,10 @@ def prety_print_value(value):
                 break
         if printable:
             value = value[:-1]
-            return ', '.join('"' + x + '"' for x in value.split(b'\x00'))
+            return ', '.join(f'"{x}"' for x in value.split(b'\x00'))
     if len(value) > 0x80:
-        return '[' + as_bytes(value[:0x80]) + ' ... ]'
-    return '[' + as_bytes(value) + ']'
+        return f'[{as_bytes(value[:128])} ... ]'
+    return f'[{as_bytes(value)}]'
 
 def pretty_print_r(node, strblock, indent=0):
     """
@@ -356,7 +355,9 @@ def pretty_print_r(node, strblock, indent=0):
     spaces = '  ' * indent
     print((spaces + '%s {' % (node.name.decode('utf-8') if node.name else '/')))
     for p in node.props:
-        print((spaces + '  %s = %s;' % (strblock[p.name].decode('utf-8'), prety_print_value(p.value))))
+        print(
+            f"{spaces}  {strblock[p.name].decode('utf-8')} = {prety_print_value(p.value)};"
+        )
     for c in node.children:
         pretty_print_r(c, strblock, indent+1)
     print((spaces + '};'))

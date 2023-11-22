@@ -200,9 +200,7 @@ class TestBintool(unittest.TestCase):
             btool = list(self.btools.values())[self.seq]
             self.seq += 1
             print('fetch', btool.name)
-            if btool.name == '_testing':
-                return bintool.PRESENT
-            return bintool.FETCHED
+            return bintool.PRESENT if btool.name == '_testing' else bintool.FETCHED
 
         # Preload a list of tools to return when get_tool_list() and create()
         # are called

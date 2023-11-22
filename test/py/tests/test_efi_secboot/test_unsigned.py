@@ -26,12 +26,15 @@ class TestEfiUnsignedImage(object):
         disk_img = efi_boot_env
         with u_boot_console.log.section('Test Case 1'):
             # Test Case 1
-            output = u_boot_console.run_command_list([
-                'host bind 0 %s' % disk_img,
-                'fatload host 0:1 4000000 KEK.auth',
-                'setenv -e -nv -bs -rt -at -i 4000000:$filesize KEK',
-                'fatload host 0:1 4000000 PK.auth',
-                'setenv -e -nv -bs -rt -at -i 4000000:$filesize PK'])
+            output = u_boot_console.run_command_list(
+                [
+                    f'host bind 0 {disk_img}',
+                    'fatload host 0:1 4000000 KEK.auth',
+                    'setenv -e -nv -bs -rt -at -i 4000000:$filesize KEK',
+                    'fatload host 0:1 4000000 PK.auth',
+                    'setenv -e -nv -bs -rt -at -i 4000000:$filesize PK',
+                ]
+            )
             assert 'Failed to set EFI variable' not in ''.join(output)
 
             output = u_boot_console.run_command_list([
@@ -53,14 +56,17 @@ class TestEfiUnsignedImage(object):
         disk_img = efi_boot_env
         with u_boot_console.log.section('Test Case 2'):
             # Test Case 2
-            output = u_boot_console.run_command_list([
-                'host bind 0 %s' % disk_img,
-                'fatload host 0:1 4000000 db_hello.auth',
-                'setenv -e -nv -bs -rt -at -i 4000000:$filesize db',
-                'fatload host 0:1 4000000 KEK.auth',
-                'setenv -e -nv -bs -rt -at -i 4000000:$filesize KEK',
-                'fatload host 0:1 4000000 PK.auth',
-                'setenv -e -nv -bs -rt -at -i 4000000:$filesize PK'])
+            output = u_boot_console.run_command_list(
+                [
+                    f'host bind 0 {disk_img}',
+                    'fatload host 0:1 4000000 db_hello.auth',
+                    'setenv -e -nv -bs -rt -at -i 4000000:$filesize db',
+                    'fatload host 0:1 4000000 KEK.auth',
+                    'setenv -e -nv -bs -rt -at -i 4000000:$filesize KEK',
+                    'fatload host 0:1 4000000 PK.auth',
+                    'setenv -e -nv -bs -rt -at -i 4000000:$filesize PK',
+                ]
+            )
             assert 'Failed to set EFI variable' not in ''.join(output)
 
             output = u_boot_console.run_command_list([
@@ -77,14 +83,17 @@ class TestEfiUnsignedImage(object):
         disk_img = efi_boot_env
         with u_boot_console.log.section('Test Case 3a'):
             # Test Case 3a, rejected by dbx
-            output = u_boot_console.run_command_list([
-                'host bind 0 %s' % disk_img,
-                'fatload host 0:1 4000000 db_hello.auth',
-                'setenv -e -nv -bs -rt -at -i 4000000:$filesize dbx',
-                'fatload host 0:1 4000000 KEK.auth',
-                'setenv -e -nv -bs -rt -at -i 4000000:$filesize KEK',
-                'fatload host 0:1 4000000 PK.auth',
-                'setenv -e -nv -bs -rt -at -i 4000000:$filesize PK'])
+            output = u_boot_console.run_command_list(
+                [
+                    f'host bind 0 {disk_img}',
+                    'fatload host 0:1 4000000 db_hello.auth',
+                    'setenv -e -nv -bs -rt -at -i 4000000:$filesize dbx',
+                    'fatload host 0:1 4000000 KEK.auth',
+                    'setenv -e -nv -bs -rt -at -i 4000000:$filesize KEK',
+                    'fatload host 0:1 4000000 PK.auth',
+                    'setenv -e -nv -bs -rt -at -i 4000000:$filesize PK',
+                ]
+            )
             assert 'Failed to set EFI variable' not in ''.join(output)
 
             output = u_boot_console.run_command_list([

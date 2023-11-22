@@ -17,9 +17,7 @@ class Bintool_testing(bintool.Bintool):
         self.disable = False
 
     def is_present(self):
-        if self.present is None:
-            return super().is_present()
-        return self.present
+        return super().is_present() if self.present is None else self.present
 
     def version(self):
         return '123'

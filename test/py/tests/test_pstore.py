@@ -68,10 +68,25 @@ def test_pstore_save_records(u_boot_console):
 
     u_boot_console.run_command('')
     load_pstore(u_boot_console)
-    u_boot_console.run_command('pstore save hostfs - %s' % (outdir))
+    u_boot_console.run_command(f'pstore save hostfs - {outdir}')
 
-    checkfile(u_boot_console, '%s/dmesg-ramoops-0' % (outdir), 3798, '8059335ab4cfa62c77324c491659c503')
-    checkfile(u_boot_console, '%s/dmesg-ramoops-1' % (outdir), 4035, '3ff30df3429d81939c75d0070b5187b9')
-    checkfile(u_boot_console, '%s/console-ramoops-0' % (outdir), 4084, 'bb44de4a9b8ebd9b17ae98003287325b')
+    checkfile(
+        u_boot_console,
+        f'{outdir}/dmesg-ramoops-0',
+        3798,
+        '8059335ab4cfa62c77324c491659c503',
+    )
+    checkfile(
+        u_boot_console,
+        f'{outdir}/dmesg-ramoops-1',
+        4035,
+        '3ff30df3429d81939c75d0070b5187b9',
+    )
+    checkfile(
+        u_boot_console,
+        f'{outdir}/console-ramoops-0',
+        4084,
+        'bb44de4a9b8ebd9b17ae98003287325b',
+    )
 
     shutil.rmtree(outdir)

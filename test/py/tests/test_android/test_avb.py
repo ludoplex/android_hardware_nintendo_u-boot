@@ -31,7 +31,7 @@ def test_avb_verify(u_boot_console):
 
     success_str = "Verification passed successfully"
 
-    response = u_boot_console.run_command('avb init %s' %str(mmc_dev))
+    response = u_boot_console.run_command(f'avb init {str(mmc_dev)}')
     assert response == ''
     response = u_boot_console.run_command('avb verify')
     assert response.find(success_str)
@@ -44,11 +44,10 @@ def test_avb_mmc_uuid(u_boot_console):
     'part list mmc 1' output
     """
 
-    response = u_boot_console.run_command('avb init %s' % str(mmc_dev))
+    response = u_boot_console.run_command(f'avb init {str(mmc_dev)}')
     assert response == ''
 
-    response = u_boot_console.run_command('mmc rescan; mmc dev %s' %
-                                          str(mmc_dev))
+    response = u_boot_console.run_command(f'mmc rescan; mmc dev {str(mmc_dev)}')
     assert response.find('is current device')
 
     part_lines = u_boot_console.run_command('mmc part').splitlines()
@@ -67,7 +66,7 @@ def test_avb_mmc_uuid(u_boot_console):
 
     # lets check all guids with avb get_guid
     for part, guid in part_list.items():
-        avb_guid_resp = u_boot_console.run_command('avb get_uuid %s' % part)
+        avb_guid_resp = u_boot_console.run_command(f'avb get_uuid {part}')
         assert guid == avb_guid_resp.split('UUID: ')[1]
 
 
@@ -76,7 +75,7 @@ def test_avb_read_rb(u_boot_console):
     """Test reading rollback indexes
     """
 
-    response = u_boot_console.run_command('avb init %s' % str(mmc_dev))
+    response = u_boot_console.run_command(f'avb init {str(mmc_dev)}')
     assert response == ''
 
     response = u_boot_console.run_command('avb read_rb 1')
@@ -88,7 +87,7 @@ def test_avb_is_unlocked(u_boot_console):
     """Test if device is in the unlocked state
     """
 
-    response = u_boot_console.run_command('avb init %s' % str(mmc_dev))
+    response = u_boot_console.run_command(f'avb init {str(mmc_dev)}')
     assert response == ''
 
     response = u_boot_console.run_command('avb is_unlocked')
@@ -101,14 +100,13 @@ def test_avb_mmc_read(u_boot_console):
     """Test mmc read operation
     """
 
-    response = u_boot_console.run_command('mmc rescan; mmc dev %s 0' %
-                                          str(mmc_dev))
+    response = u_boot_console.run_command(f'mmc rescan; mmc dev {str(mmc_dev)} 0')
     assert response.find('is current device')
 
     response = u_boot_console.run_command('mmc read 0x%x 0x100 0x1' % temp_addr)
     assert response.find('read: OK')
 
-    response = u_boot_console.run_command('avb init %s' % str(mmc_dev))
+    response = u_boot_console.run_command(f'avb init {str(mmc_dev)}')
     assert response == ''
 
     response = u_boot_console.run_command('avb read_part xloader 0 100 0x%x' %
@@ -127,7 +125,7 @@ def test_avb_persistent_values(u_boot_console):
     """Test reading/writing persistent storage to avb
     """
 
-    response = u_boot_console.run_command('avb init %s' % str(mmc_dev))
+    response = u_boot_console.run_command(f'avb init {str(mmc_dev)}')
     assert response == ''
 
     response = u_boot_console.run_command('avb write_pvalue test value_value')

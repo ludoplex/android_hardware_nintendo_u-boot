@@ -19,20 +19,22 @@ def efi_bootmgr_data(u_boot_config):
     Return:
         A path to disk image to be used for testing
     """
-    mnt_point = u_boot_config.persistent_data_dir + '/test_efi_bootmgr'
-    image_path = u_boot_config.persistent_data_dir + '/efi_bootmgr.img'
+    mnt_point = f'{u_boot_config.persistent_data_dir}/test_efi_bootmgr'
+    image_path = f'{u_boot_config.persistent_data_dir}/efi_bootmgr.img'
 
     shutil.rmtree(mnt_point, ignore_errors=True)
     os.mkdir(mnt_point, mode = 0o755)
 
-    with open(mnt_point + '/initrd-1.img', 'w', encoding = 'ascii') as file:
+    with open(f'{mnt_point}/initrd-1.img', 'w', encoding = 'ascii') as file:
         file.write("initrd 1")
 
-    with open(mnt_point + '/initrd-2.img', 'w', encoding = 'ascii') as file:
+    with open(f'{mnt_point}/initrd-2.img', 'w', encoding = 'ascii') as file:
         file.write("initrd 2")
 
-    shutil.copyfile(u_boot_config.build_dir + '/lib/efi_loader/initrddump.efi',
-                    mnt_point + '/initrddump.efi')
+    shutil.copyfile(
+        f'{u_boot_config.build_dir}/lib/efi_loader/initrddump.efi',
+        f'{mnt_point}/initrddump.efi',
+    )
 
     check_call(f'virt-make-fs --partition=gpt --size=+1M --type=vfat {mnt_point} {image_path}',
                shell=True)

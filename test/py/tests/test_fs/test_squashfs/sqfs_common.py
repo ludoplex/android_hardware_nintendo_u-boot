@@ -50,9 +50,7 @@ def get_opts_list():
 
     opts_list = [' ']
     for comp_opt in comp_opts:
-        for frag_opt in frag_opts:
-            opts_list.append(' '.join([comp_opt, frag_opt]))
-
+        opts_list.extend(' '.join([comp_opt, frag_opt]) for frag_opt in frag_opts)
     return opts_list
 
 def init_standard_table():
@@ -75,9 +73,8 @@ def generate_file(file_name, file_size):
     """
     content = 'x' * file_size
 
-    file = open(file_name, 'w')
-    file.write(content)
-    file.close()
+    with open(file_name, 'w') as file:
+        file.write(content)
 
 def generate_sqfs_src_dir(build_dir):
     """ Generates the source directory used to make the SquashFS images.
@@ -134,8 +131,12 @@ def mksquashfs(args):
     Args:
         args: mksquashfs options (e.g.: compression and fragmentation).
     """
-    subprocess.run(['mksquashfs ' + args], shell=True, check=True,
-                   stdout=subprocess.DEVNULL)
+    subprocess.run(
+        [f'mksquashfs {args}'],
+        shell=True,
+        check=True,
+        stdout=subprocess.DEVNULL,
+    )
 
 def get_mksquashfs_version():
     """ Parses the output of mksquashfs -version.
@@ -146,7 +147,7 @@ def get_mksquashfs_version():
     out = subprocess.run(['mksquashfs -version'], shell=True, check=True,
                          capture_output=True, text=True)
     # 'out' is: mksquashfs version X (yyyy/mm/dd) ...
-    return out.stdout.split()[2].split('.')[0:2]
+    return out.stdout.split()[2].split('.')[:2]
 
 def check_mksquashfs_version():
     """ Checks if mksquashfs meets the required version. """

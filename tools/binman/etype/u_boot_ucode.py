@@ -64,7 +64,7 @@ class Entry_u_boot_ucode(Entry_blob):
         # If the section does not need microcode, there is nothing to do
         found = False
         for suffix in ['', '-spl', '-tpl']:
-            name = 'u-boot%s-with-ucode-ptr' % suffix
+            name = f'u-boot{suffix}-with-ucode-ptr'
             entry = self.section.FindEntryType(name)
             if entry and entry.target_offset:
                 found = True
@@ -76,7 +76,7 @@ class Entry_u_boot_ucode(Entry_blob):
         # doesn't exist, then we may as well return True, since we are going to
         # get an error anyway.
         for suffix in ['', '-spl', '-tpl']:
-            name = 'u-boot%s-dtb-with-ucode' % suffix
+            name = f'u-boot{suffix}-dtb-with-ucode'
             fdt_entry = self.section.FindEntryType(name)
             if fdt_entry:
                 break

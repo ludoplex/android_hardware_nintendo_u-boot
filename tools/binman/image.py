@@ -78,7 +78,7 @@ class Image(section.Entry_section):
         self.copy_to_orig = copy_to_orig
         self.name = 'main-section'
         self.image_name = name
-        self._filename = '%s.bin' % self.image_name
+        self._filename = f'{self.image_name}.bin'
         self.fdtmap_dtb = None
         self.fdtmap_data = None
         self.allow_repack = False
@@ -93,8 +93,7 @@ class Image(section.Entry_section):
 
     def ReadNode(self):
         super().ReadNode()
-        filename = fdt_util.GetString(self._node, 'filename')
-        if filename:
+        if filename := fdt_util.GetString(self._node, 'filename'):
             self._filename = filename
         self.allow_repack = fdt_util.GetBool(self._node, 'allow-repack')
 
@@ -148,7 +147,7 @@ class Image(section.Entry_section):
 
     def Raise(self, msg):
         """Convenience function to raise an error referencing an image"""
-        raise ValueError("Image '%s': %s" % (self._node.path, msg))
+        raise ValueError(f"Image '{self._node.path}': {msg}")
 
     def PackEntries(self):
         """Pack all entries into the image"""
@@ -175,7 +174,7 @@ class Image(section.Entry_section):
     def BuildImage(self):
         """Write the image to a file"""
         fname = tools.get_output_filename(self._filename)
-        tout.info("Writing image to '%s'" % fname)
+        tout.info(f"Writing image to '{fname}'")
         with open(fname, 'wb') as fd:
             data = self.GetPaddedData()
             fd.write(data)
@@ -187,7 +186,7 @@ class Image(section.Entry_section):
         Returns:
             Filename of map file written
         """
-        filename = '%s.map' % self.image_name
+        filename = f'{self.image_name}.map'
         fname = tools.get_output_filename(filename)
         with open(fname, 'w') as fd:
             print('%8s  %8s  %8s  %s' % ('ImagePos', 'Offset', 'Size', 'Name'),
@@ -223,8 +222,7 @@ class Image(section.Entry_section):
         for part in parts:
             entry = entries.get(part)
             if not entry:
-                raise ValueError("Entry '%s' not found in '%s'" %
-                                 (part, parent))
+                raise ValueError(f"Entry '{part}' not found in '{parent}'")
             parent = entry.GetPath()
             entries = entry.GetEntries()
         return entry
@@ -338,7 +336,7 @@ class Image(section.Entry_section):
             elif entry.indent < indent:
                 path_stack.pop()
             if path_stack:
-                path = path_stack[-1] + '/' + entry.name
+                path = f'{path_stack[-1]}/{entry.name}'
             indent = entry.indent
 
             # If there are entry paths to match and we are not looking at a

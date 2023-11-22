@@ -159,17 +159,17 @@ try:
     makefile_patchlevel = None
     for line in open('../Makefile'):
         key, val = [x.strip() for x in line.split('=', 2)]
-        if key == 'VERSION':
-            makefile_version = val
-        elif key == 'PATCHLEVEL':
+        if key == 'PATCHLEVEL':
             makefile_patchlevel = val
+        elif key == 'VERSION':
+            makefile_version = val
         if makefile_version and makefile_patchlevel:
             break
 except:
     pass
 finally:
     if makefile_version and makefile_patchlevel:
-        version = release = makefile_version + '.' + makefile_patchlevel
+        version = release = f'{makefile_version}.{makefile_patchlevel}'
     else:
         version = release = "unknown version"
 
@@ -411,17 +411,18 @@ latex_documents = [
 # Add all other index files from Documentation/ subdirectories
 for fn in os.listdir('.'):
     doc = os.path.join(fn, "index")
-    if os.path.exists(doc + ".rst"):
-        has = False
-        for l in latex_documents:
-            if l[0] == doc:
-                has = True
-                break
+    if os.path.exists(f"{doc}.rst"):
+        has = any(l[0] == doc for l in latex_documents)
         if not has:
-            latex_documents.append((doc, fn + '.tex',
-                                    'U-Boot %s Documentation' % fn.capitalize(),
-                                    'The U-Boot development community',
-                                    'manual'))
+            latex_documents.append(
+                (
+                    doc,
+                    f'{fn}.tex',
+                    f'U-Boot {fn.capitalize()} Documentation',
+                    'The U-Boot development community',
+                    'manual',
+                )
+            )
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.

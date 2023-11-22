@@ -12,7 +12,7 @@ import u_boot_utils as util
 def test_event_dump(u_boot_console):
     """Test that the "help" command can be executed."""
     cons = u_boot_console
-    sandbox = cons.config.build_dir + '/u-boot'
+    sandbox = f'{cons.config.build_dir}/u-boot'
     out = util.run_and_log(cons, ['scripts/event_dump.py', sandbox])
     expect = '''.*Event type            Id                              Source location
 --------------------  ------------------------------  ------------------------------

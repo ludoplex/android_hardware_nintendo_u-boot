@@ -20,14 +20,16 @@ class TestMkdir(object):
         """
         fs_type,fs_img = fs_obj_mkdir
         with u_boot_console.log.section('Test Case 1 - mkdir'):
-            output = u_boot_console.run_command_list([
-                'host bind 0 %s' % fs_img,
-                '%smkdir host 0:0 dir1' % fs_type,
-                '%sls host 0:0 /' % fs_type])
+            output = u_boot_console.run_command_list(
+                [
+                    f'host bind 0 {fs_img}',
+                    f'{fs_type}mkdir host 0:0 dir1',
+                    f'{fs_type}ls host 0:0 /',
+                ]
+            )
             assert('dir1/' in ''.join(output))
 
-            output = u_boot_console.run_command(
-                '%sls host 0:0 dir1' % fs_type)
+            output = u_boot_console.run_command(f'{fs_type}ls host 0:0 dir1')
             assert('./'   in output)
             assert('../'  in output)
             assert_fs_integrity(fs_type, fs_img)
@@ -39,14 +41,16 @@ class TestMkdir(object):
         """
         fs_type,fs_img = fs_obj_mkdir
         with u_boot_console.log.section('Test Case 2 - mkdir (sub-sub directory)'):
-            output = u_boot_console.run_command_list([
-                'host bind 0 %s' % fs_img,
-                '%smkdir host 0:0 dir1/dir2' % fs_type,
-                '%sls host 0:0 dir1' % fs_type])
+            output = u_boot_console.run_command_list(
+                [
+                    f'host bind 0 {fs_img}',
+                    f'{fs_type}mkdir host 0:0 dir1/dir2',
+                    f'{fs_type}ls host 0:0 dir1',
+                ]
+            )
             assert('dir2/' in ''.join(output))
 
-            output = u_boot_console.run_command(
-                '%sls host 0:0 dir1/dir2' % fs_type)
+            output = u_boot_console.run_command(f'{fs_type}ls host 0:0 dir1/dir2')
             assert('./'   in output)
             assert('../'  in output)
             assert_fs_integrity(fs_type, fs_img)
@@ -58,9 +62,9 @@ class TestMkdir(object):
         """
         fs_type,fs_img = fs_obj_mkdir
         with u_boot_console.log.section('Test Case 3 - mkdir (non-existing path)'):
-            output = u_boot_console.run_command_list([
-                'host bind 0 %s' % fs_img,
-                '%smkdir host 0:0 none/dir3' % fs_type])
+            output = u_boot_console.run_command_list(
+                [f'host bind 0 {fs_img}', f'{fs_type}mkdir host 0:0 none/dir3']
+            )
             assert('Unable to create a directory' in ''.join(output))
             assert_fs_integrity(fs_type, fs_img)
 
@@ -70,9 +74,9 @@ class TestMkdir(object):
         """
         fs_type,fs_img = fs_obj_mkdir
         with u_boot_console.log.section('Test Case 4 - mkdir (".")'):
-            output = u_boot_console.run_command_list([
-                'host bind 0 %s' % fs_img,
-                '%smkdir host 0:0 .' % fs_type])
+            output = u_boot_console.run_command_list(
+                [f'host bind 0 {fs_img}', f'{fs_type}mkdir host 0:0 .']
+            )
             assert('Unable to create a directory' in ''.join(output))
             assert_fs_integrity(fs_type, fs_img)
 
@@ -82,9 +86,9 @@ class TestMkdir(object):
         """
         fs_type,fs_img = fs_obj_mkdir
         with u_boot_console.log.section('Test Case 5 - mkdir ("..")'):
-            output = u_boot_console.run_command_list([
-                'host bind 0 %s' % fs_img,
-                '%smkdir host 0:0 ..' % fs_type])
+            output = u_boot_console.run_command_list(
+                [f'host bind 0 {fs_img}', f'{fs_type}mkdir host 0:0 ..']
+            )
             assert('Unable to create a directory' in ''.join(output))
             assert_fs_integrity(fs_type, fs_img)
 
@@ -95,27 +99,32 @@ class TestMkdir(object):
         """
         fs_type,fs_img = fs_obj_mkdir
         with u_boot_console.log.section('Test Case 6 - mkdir (create many)'):
-            output = u_boot_console.run_command_list([
-                'host bind 0 %s' % fs_img,
-                '%smkdir host 0:0 dir6' % fs_type,
-                '%sls host 0:0 /' % fs_type])
+            output = u_boot_console.run_command_list(
+                [
+                    f'host bind 0 {fs_img}',
+                    f'{fs_type}mkdir host 0:0 dir6',
+                    f'{fs_type}ls host 0:0 /',
+                ]
+            )
             assert('dir6/' in ''.join(output))
 
             for i in range(0, 20):
                 output = u_boot_console.run_command(
                     '%smkdir host 0:0 dir6/0123456789abcdef%02x'
                     % (fs_type, i))
-            output = u_boot_console.run_command('%sls host 0:0 dir6' % fs_type)
+            output = u_boot_console.run_command(f'{fs_type}ls host 0:0 dir6')
             assert('0123456789abcdef00/'  in output)
             assert('0123456789abcdef13/'  in output)
 
             output = u_boot_console.run_command(
-                '%sls host 0:0 dir6/0123456789abcdef13/.' % fs_type)
+                f'{fs_type}ls host 0:0 dir6/0123456789abcdef13/.'
+            )
             assert('./'   in output)
             assert('../'  in output)
 
             output = u_boot_console.run_command(
-                '%sls host 0:0 dir6/0123456789abcdef13/..' % fs_type)
+                f'{fs_type}ls host 0:0 dir6/0123456789abcdef13/..'
+            )
             assert('0123456789abcdef00/'  in output)
             assert('0123456789abcdef13/'  in output)
             assert_fs_integrity(fs_type, fs_img)

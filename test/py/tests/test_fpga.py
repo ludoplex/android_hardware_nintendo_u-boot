@@ -83,8 +83,8 @@ def load_file_from_var(u_boot_console, name):
 
     test_net.test_net_dhcp(u_boot_console)
     test_net.test_net_setup_static(u_boot_console)
-    bit = f['%s' % (name)]
-    bit_size = f['%s_size' % (name)]
+    bit = f[f'{name}']
+    bit_size = f[f'{name}_size']
 
     expected_tftp = 'Bytes transferred = %d' % bit_size
     output = u_boot_console.run_command('tftpboot %x %s' % (addr, bit))
@@ -334,7 +334,7 @@ def test_fpga_loadmk_legacy_variable(u_boot_console):
 
     # this testcase should cover case which looks like it is supported but dev pointer is broken by loading mkimage address
     expected_text = 'FPGA loaded successfully'
-    output = u_boot_console.run_command('fpga loadmk && echo %s' % (expected_text))
+    output = u_boot_console.run_command(f'fpga loadmk && echo {expected_text}')
     u_boot_console.run_command('setenv fpga')
     u_boot_console.run_command('setenv fpgadata')
     assert expected_text in output
@@ -424,7 +424,7 @@ def test_fpga_loadmk_fit_variable(u_boot_console):
     u_boot_console.run_command('setenv fpgadata %x:fpga' % (addr))
 
     expected_text = 'FPGA loaded successfully'
-    output = u_boot_console.run_command('fpga loadmk && echo %s' % (expected_text))
+    output = u_boot_console.run_command(f'fpga loadmk && echo {expected_text}')
     u_boot_console.run_command('setenv fpga')
     u_boot_console.run_command('setenv fpgadata')
     assert expected_text in output

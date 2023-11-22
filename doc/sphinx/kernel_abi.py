@@ -110,8 +110,7 @@ class KernelCmd(Directive):
         shell_env["srctree"] = srctree
 
         lines = self.runCmd(cmd, shell=True, cwd=cwd, env=shell_env)
-        nodeList = self.nestedParse(lines, self.arguments[0])
-        return nodeList
+        return self.nestedParse(lines, self.arguments[0])
 
     def runCmd(self, cmd, **kwargs):
         u"""Run command ``cmd`` and return it's stdout as unicode."""
@@ -133,8 +132,9 @@ class KernelCmd(Directive):
                     % (cmd, proc.returncode)
                 )
         except OSError as exc:
-            raise self.severe(u"problems with '%s' directive: %s."
-                              % (self.name, ErrorString(exc)))
+            raise self.severe(
+                f"problems with '{self.name}' directive: {ErrorString(exc)}."
+            )
         return out
 
     def nestedParse(self, lines, fname):
@@ -154,8 +154,7 @@ class KernelCmd(Directive):
 
         for line in lines.split("\n"):
             n = n + 1
-            match = line_regex.search(line)
-            if match:
+            if match := line_regex.search(line):
                 new_f = match.group(1)
 
                 # Sphinx parser is lazy: it stops parsing contents in the

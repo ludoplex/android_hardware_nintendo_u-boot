@@ -86,9 +86,11 @@ def output_is_new(output):
 
     for (dirpath, _, filenames) in os.walk('.'):
         for filename in filenames:
-            if (fnmatch.fnmatch(filename, '*~') or
-                not fnmatch.fnmatch(filename, 'Kconfig*') and
-                not filename == 'MAINTAINERS'):
+            if (
+                fnmatch.fnmatch(filename, '*~')
+                or not fnmatch.fnmatch(filename, 'Kconfig*')
+                and filename != 'MAINTAINERS'
+            ):
                 continue
             filepath = os.path.join(dirpath, filename)
             if ctime < os.path.getctime(filepath):
@@ -102,7 +104,7 @@ def output_is_new(output):
                 return False
             if line[0] == '#' or line == '\n':
                 continue
-            defconfig = line.split()[6] + '_defconfig'
+            defconfig = f'{line.split()[6]}_defconfig'
             if not os.path.exists(os.path.join(CONFIG_DIR, defconfig)):
                 return False
 
@@ -129,10 +131,7 @@ class Expr:
         Returns:
            True if any of the properties match the regular expression
         """
-        for prop in props:
-            if self._re.match(prop):
-                return True
-        return False
+        return any(self._re.match(prop) for prop in props)
 
     def __str__(self):
         return self._expr
@@ -170,10 +169,7 @@ class Term:
         Returns:
            True if all of the expressions in the Term match, else False
         """
-        for expr in self._expr_list:
-            if not expr.matches(props):
-                return False
-        return True
+        return all(expr.matches(props) for expr in self._expr_list)
 
 
 class KconfigScanner:
@@ -244,17 +240,10 @@ class KconfigScanner:
         try_remove(self._tmpfile)
         self._tmpfile = None
 
-        params = {}
-
-        # Get the value of CONFIG_SYS_ARCH, CONFIG_SYS_CPU, ... etc.
-        # Set '-' if the value is empty.
-        for key, symbol in list(self._SYMBOL_TABLE.items()):
-            value = self._conf.syms.get(symbol).str_value
-            if value:
-                params[key] = value
-            else:
-                params[key] = '-'
-
+        params = {
+            key: value if (value := self._conf.syms.get(symbol).str_value) else '-'
+            for key, symbol in list(self._SYMBOL_TABLE.items())
+        }
         defconfig = os.path.basename(defconfig)
         params['target'], match, rear = defconfig.partition('_defconfig')
         assert match and not rear, f'{defconfig} : invalid defconfig'
@@ -297,7 +286,7 @@ class MaintainersDatabase:
         Returns:
             str: 'Active', 'Orphan' or '-'.
         """
-        if not target in self.database:
+        if target not in self.database:
             self.warnings.append(f"WARNING: no status info for '{target}'")
             return '-'
 
@@ -321,7 +310,7 @@ class MaintainersDatabase:
             str: Maintainers of the board.  If the board has two or more
             maintainers, they are separated with colons.
         """
-        if not target in self.database:
+        if target not in self.database:
             self.warnings.append(f"WARNING: no maintainers for '{target}'")
             return ''
 
@@ -633,11 +622,11 @@ class Boards:
         """
         all_defconfigs = []
         for (dirpath, _, filenames) in os.walk(CONFIG_DIR):
-            for filename in fnmatch.filter(filenames, '*_defconfig'):
-                if fnmatch.fnmatch(filename, '.*'):
-                    continue
-                all_defconfigs.append(os.path.join(dirpath, filename))
-
+            all_defconfigs.extend(
+                os.path.join(dirpath, filename)
+                for filename in fnmatch.filter(filenames, '*_defconfig')
+                if not fnmatch.fnmatch(filename, '.*')
+            )
         total_boards = len(all_defconfigs)
         processes = []
         queues = []
@@ -716,10 +705,9 @@ class Boards:
 
         output_lines = []
         for params in params_list:
-            line = ''
-            for field in fields:
-                # insert two spaces between fields like column -t would
-                line += '  ' + params[field].ljust(max_length[field])
+            line = ''.join(
+                f'  {params[field].ljust(max_length[field])}' for field in fields
+            )
             output_lines.append(line.strip())
 
         # ignore case when sorting

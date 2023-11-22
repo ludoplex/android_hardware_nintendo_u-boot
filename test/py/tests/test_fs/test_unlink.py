@@ -21,15 +21,17 @@ class TestUnlink(object):
         """
         fs_type,fs_img = fs_obj_unlink
         with u_boot_console.log.section('Test Case 1 - unlink (file)'):
-            output = u_boot_console.run_command_list([
-                'host bind 0 %s' % fs_img,
-                '%srm host 0:0 dir1/file1' % fs_type,
-                '%sls host 0:0 dir1/file1' % fs_type])
+            output = u_boot_console.run_command_list(
+                [
+                    f'host bind 0 {fs_img}',
+                    f'{fs_type}rm host 0:0 dir1/file1',
+                    f'{fs_type}ls host 0:0 dir1/file1',
+                ]
+            )
             assert('' == ''.join(output))
 
-            output = u_boot_console.run_command(
-                '%sls host 0:0 dir1/' % fs_type)
-            assert(not 'file1' in output)
+            output = u_boot_console.run_command(f'{fs_type}ls host 0:0 dir1/')
+            assert 'file1' not in output
             assert('file2' in output)
             assert_fs_integrity(fs_type, fs_img)
 
@@ -39,7 +41,7 @@ class TestUnlink(object):
         """
         fs_type,fs_img = fs_obj_unlink
         with u_boot_console.log.section('Test Case 2 - unlink (many)'):
-            output = u_boot_console.run_command('host bind 0 %s' % fs_img)
+            output = u_boot_console.run_command(f'host bind 0 {fs_img}')
 
             for i in range(0, 20):
                 output = u_boot_console.run_command_list([
@@ -47,8 +49,7 @@ class TestUnlink(object):
                     '%sls host 0:0 dir2/0123456789abcdef%02x' % (fs_type, i)])
                 assert('' == ''.join(output))
 
-            output = u_boot_console.run_command(
-                '%sls host 0:0 dir2' % fs_type)
+            output = u_boot_console.run_command(f'{fs_type}ls host 0:0 dir2')
             assert('0 file(s), 2 dir(s)' in output)
             assert_fs_integrity(fs_type, fs_img)
 
@@ -58,9 +59,9 @@ class TestUnlink(object):
         """
         fs_type,fs_img = fs_obj_unlink
         with u_boot_console.log.section('Test Case 3 - unlink (non-existing)'):
-            output = u_boot_console.run_command_list([
-                'host bind 0 %s' % fs_img,
-                '%srm host 0:0 dir1/nofile' % fs_type])
+            output = u_boot_console.run_command_list(
+                [f'host bind 0 {fs_img}', f'{fs_type}rm host 0:0 dir1/nofile']
+            )
             assert('nofile: doesn\'t exist' in ''.join(output))
             assert_fs_integrity(fs_type, fs_img)
 
@@ -70,14 +71,13 @@ class TestUnlink(object):
         """
         fs_type,fs_img = fs_obj_unlink
         with u_boot_console.log.section('Test Case 4 - unlink (directory)'):
-            output = u_boot_console.run_command_list([
-                'host bind 0 %s' % fs_img,
-                '%srm host 0:0 dir4' % fs_type])
+            output = u_boot_console.run_command_list(
+                [f'host bind 0 {fs_img}', f'{fs_type}rm host 0:0 dir4']
+            )
             assert('' == ''.join(output))
 
-            output = u_boot_console.run_command(
-                '%sls host 0:0 /' % fs_type)
-            assert(not 'dir4' in output)
+            output = u_boot_console.run_command(f'{fs_type}ls host 0:0 /')
+            assert 'dir4' not in output
             assert_fs_integrity(fs_type, fs_img)
 
     def test_unlink5(self, u_boot_console, fs_obj_unlink):
@@ -87,9 +87,9 @@ class TestUnlink(object):
         """
         fs_type,fs_img = fs_obj_unlink
         with u_boot_console.log.section('Test Case 5 - unlink ("non-empty directory")'):
-            output = u_boot_console.run_command_list([
-                'host bind 0 %s' % fs_img,
-                '%srm host 0:0 dir5' % fs_type])
+            output = u_boot_console.run_command_list(
+                [f'host bind 0 {fs_img}', f'{fs_type}rm host 0:0 dir5']
+            )
             assert('directory is not empty' in ''.join(output))
             assert_fs_integrity(fs_type, fs_img)
 
@@ -99,9 +99,9 @@ class TestUnlink(object):
         """
         fs_type,fs_img = fs_obj_unlink
         with u_boot_console.log.section('Test Case 6 - unlink (".")'):
-            output = u_boot_console.run_command_list([
-                'host bind 0 %s' % fs_img,
-                '%srm host 0:0 dir5/.' % fs_type])
+            output = u_boot_console.run_command_list(
+                [f'host bind 0 {fs_img}', f'{fs_type}rm host 0:0 dir5/.']
+            )
             assert('directory is not empty' in ''.join(output))
             assert_fs_integrity(fs_type, fs_img)
 
@@ -111,8 +111,8 @@ class TestUnlink(object):
         """
         fs_type,fs_img = fs_obj_unlink
         with u_boot_console.log.section('Test Case 7 - unlink ("..")'):
-            output = u_boot_console.run_command_list([
-                'host bind 0 %s' % fs_img,
-                '%srm host 0:0 dir5/..' % fs_type])
+            output = u_boot_console.run_command_list(
+                [f'host bind 0 {fs_img}', f'{fs_type}rm host 0:0 dir5/..']
+            )
             assert('directory is not empty' in ''.join(output))
             assert_fs_integrity(fs_type, fs_img)

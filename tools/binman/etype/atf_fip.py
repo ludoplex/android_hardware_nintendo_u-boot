@@ -182,8 +182,9 @@ class Entry_atf_fip(Entry_section):
         self._fip_flags = fdt_util.GetInt64(self._node, 'fip-hdr-flags', 0)
         self._fip_align = fdt_util.GetInt(self._node, 'fip-align', 1)
         if tools.not_power_of_two(self._fip_align):
-            raise ValueError("Node '%s': FIP alignment %s must be a power of two" %
-                             (self._node.path, self._fip_align))
+            raise ValueError(
+                f"Node '{self._node.path}': FIP alignment {self._fip_align} must be a power of two"
+            )
         self.ReadEntries()
 
     def ReadEntries(self):
@@ -200,8 +201,9 @@ class Entry_atf_fip(Entry_section):
             if not fip_type and not entry._fip_uuid:
                 fip_type = fdt_util.GetString(node, 'fip-type')
                 if not fip_type:
-                    self.Raise("Must provide a fip-type (node name '%s' is not a known FIP type)" %
-                               node.name)
+                    self.Raise(
+                        f"Must provide a fip-type (node name '{node.name}' is not a known FIP type)"
+                    )
 
             entry._fip_type = fip_type
             entry._fip_flags = fdt_util.GetInt64(node, 'fip-flags', 0)
@@ -226,12 +228,11 @@ class Entry_atf_fip(Entry_section):
             entry_data = entry.GetData(required)
             if not required and entry_data is None:
                 return None
-            fent = fip.add_entry(entry._fip_type or entry._fip_uuid, entry_data,
-                                 entry._fip_flags)
-            if fent:
+            if fent := fip.add_entry(
+                entry._fip_type or entry._fip_uuid, entry_data, entry._fip_flags
+            ):
                 entry._fip_entry = fent
-        data = fip.get_data()
-        return data
+        return fip.get_data()
 
     def SetImagePos(self, image_pos):
         """Override this function to set all the entry properties from FIP

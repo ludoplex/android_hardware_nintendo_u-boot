@@ -56,9 +56,7 @@ def sf_prepare(u_boot_console, env__sf_config):
         sf_params: a dictionary of SPI Flash parameters.
     """
 
-    sf_params = {}
-    sf_params['ram_base'] = u_boot_utils.find_ram_base(u_boot_console)
-
+    sf_params = {'ram_base': u_boot_utils.find_ram_base(u_boot_console)}
     probe_id = env__sf_config.get('id', 0)
     speed = env__sf_config.get('speed', 0)
     if isinstance(speed, int):
@@ -78,9 +76,7 @@ def sf_prepare(u_boot_console, env__sf_config):
 
     m = re.search('erase size (.+?) KiB', output)
     assert m, 'SPI Flash erase size not recognized'
-    sf_params['erase_size'] = int(m.group(1))
-    sf_params['erase_size'] *= 1024
-
+    sf_params['erase_size'] = int(m.group(1)) * 1024
     m = re.search('total (.+?) MiB', output)
     assert m, 'SPI Flash total size not recognized'
     sf_params['total_size'] = int(m.group(1))

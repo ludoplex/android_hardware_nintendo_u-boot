@@ -80,7 +80,7 @@ class Bintool:
         # Import the module if we have not already done so
         if not module:
             try:
-                module = importlib.import_module('binman.btool.' + module_name)
+                module = importlib.import_module(f'binman.btool.{module_name}')
             except ImportError as exc:
                 try:
                     # Deal with classes which must be renamed due to conflicts
@@ -109,16 +109,11 @@ class Bintool:
         if isinstance(cls, tuple):
             raise ValueError("Cannot import bintool module '%s': %s" % cls)
 
-        # Call its constructor to get the object we want.
-        obj = cls(name)
-        return obj
+        return cls(name)
 
     def show(self):
         """Show a line of information about a bintool"""
-        if self.is_present():
-            version = self.version()
-        else:
-            version = '-'
+        version = self.version() if self.is_present() else '-'
         print(FORMAT % (self.name, version, self.desc,
                         self.get_path() or '(not found)'))
 
@@ -157,9 +152,7 @@ class Bintool:
         Returns:
             bool: True if available, False if not
         """
-        if self.name in self.missing_list:
-            return False
-        return bool(self.get_path())
+        return False if self.name in self.missing_list else bool(self.get_path())
 
     def get_path(self):
         """Get the path of a bintool
@@ -194,7 +187,7 @@ class Bintool:
 
         if skip_present and self.is_present():
             return PRESENT
-        print(col.build(col.YELLOW, 'Fetch: %s' % self.name))
+        print(col.build(col.YELLOW, f'Fetch: {self.name}'))
         if method == FETCH_ANY:
             for try_method in range(1, FETCH_COUNT):
                 print(f'- trying method: {FETCH_NAMES[try_method]}')
@@ -239,8 +232,7 @@ class Bintool:
             name_list = Bintool.get_tool_list()
             if names_to_fetch[0] == 'missing':
                 skip_present = True
-            print(col.build(col.YELLOW,
-                            'Fetching tools:      %s' % ' '.join(name_list)))
+            print(col.build(col.YELLOW, f"Fetching tools:      {' '.join(name_list)}"))
         status = collections.defaultdict(list)
         for name in name_list:
             btool = Bintool.create(name)
@@ -314,8 +306,7 @@ class Bintool:
         Returns:
             str or bytes: Resulting stdout from the bintool
         """
-        result = self.run_cmd_result(*args, binary=binary)
-        if result:
+        if result := self.run_cmd_result(*args, binary=binary):
             return result.stdout
 
     @classmethod
@@ -399,7 +390,7 @@ class Bintool:
             True, assuming it completes without error
         """
         args = ['sudo', 'apt', 'install', '-y', package]
-        print('- %s' % ' '.join(args))
+        print(f"- {' '.join(args)}")
         tools.run(*args)
         return True
 
@@ -435,7 +426,7 @@ binaries. It is fairly easy to create new bintools. Just add a new file to the
                 lines = docs.splitlines()
                 first_line = lines[0]
                 rest = [line[4:] for line in lines[1:]]
-                hdr = 'Bintool: %s: %s' % (name, first_line)
+                hdr = f'Bintool: {name}: {first_line}'
                 print(hdr)
                 print('-' * len(hdr))
                 print('\n'.join(rest))
@@ -445,8 +436,7 @@ binaries. It is fairly easy to create new bintools. Just add a new file to the
                 missing.append(name)
 
         if missing:
-            raise ValueError('Documentation is missing for modules: %s' %
-                             ', '.join(missing))
+            raise ValueError(f"Documentation is missing for modules: {', '.join(missing)}")
 
     # pylint: disable=W0613
     def fetch(self, method):
@@ -513,7 +503,7 @@ class BintoolPacker(Bintool):
     def __init__(self, name, compression=None, compress_args=None,
                  decompress_args=None, fetch_package=None,
                  version_regex=r'(v[0-9.]+)', version_args='-V'):
-        desc = '%s compression' % (compression if compression else name)
+        desc = f'{compression if compression else name} compression'
         super().__init__(name, desc, version_regex, version_args)
         if compress_args is None:
             compress_args = ['--compress']
@@ -570,6 +560,4 @@ class BintoolPacker(Bintool):
         Raises:
             Valuerror: Fetching could not be completed
         """
-        if method != FETCH_BIN:
-            return None
-        return self.apt_install(self.fetch_package)
+        return None if method != FETCH_BIN else self.apt_install(self.fetch_package)

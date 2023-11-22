@@ -30,12 +30,12 @@ def loadConfig(namespace):
         if start >= 0 and end > 0:
             dir = config_file[start + 1:end]
 
-            print("source directory: %s" % dir)
+            print(f"source directory: {dir}")
             new_latex_docs = []
             latex_documents = namespace['latex_documents']
 
             for l in latex_documents:
-                if l[0].find(dir + '/') == 0:
+                if l[0].find(f'{dir}/') == 0:
                     has = True
                     fn = l[0][len(dir) + 1:]
                     new_latex_docs.append((fn, l[1], l[2], l[3], l[4]))
@@ -50,8 +50,8 @@ def loadConfig(namespace):
             config['__file__'] = config_file
             execfile_(config_file, config)
             del config['__file__']
-            namespace.update(config)
         else:
             config = namespace.copy()
             config['tags'].add("subproject")
-            namespace.update(config)
+
+        namespace.update(config)

@@ -42,7 +42,7 @@ class Entry_collection(Entry):
             bytes content of the entry
         """
         # Join up all the data
-        self.Info('Getting contents, required=%s' % required)
+        self.Info(f'Getting contents, required={required}')
         data = bytearray()
         for entry_phandle in self.content:
             entry_data = self.section.GetContentsByPhandle(entry_phandle, self,

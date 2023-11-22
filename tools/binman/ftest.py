@@ -205,10 +205,12 @@ class TestFunctional(unittest.TestCase):
         TestFunctional._MakeInputFile('scp.bin', SCP_DATA)
 
         # Add a few .dtb files for testing
-        TestFunctional._MakeInputFile('%s/test-fdt1.dtb' % TEST_FDT_SUBDIR,
-                                      TEST_FDT1_DATA)
-        TestFunctional._MakeInputFile('%s/test-fdt2.dtb' % TEST_FDT_SUBDIR,
-                                      TEST_FDT2_DATA)
+        TestFunctional._MakeInputFile(
+            f'{TEST_FDT_SUBDIR}/test-fdt1.dtb', TEST_FDT1_DATA
+        )
+        TestFunctional._MakeInputFile(
+            f'{TEST_FDT_SUBDIR}/test-fdt2.dtb', TEST_FDT2_DATA
+        )
 
         TestFunctional._MakeInputFile('env.txt', ENV_DATA)
 
@@ -227,10 +229,9 @@ class TestFunctional(unittest.TestCase):
     def tearDownClass(cls):
         """Remove the temporary input directory and its contents"""
         if cls.preserve_indir:
-            print('Preserving input dir: %s' % cls._indir)
-        else:
-            if cls._indir:
-                shutil.rmtree(cls._indir)
+            print(f'Preserving input dir: {cls._indir}')
+        elif cls._indir:
+            shutil.rmtree(cls._indir)
         cls._indir = None
 
     @classmethod
@@ -253,7 +254,7 @@ class TestFunctional(unittest.TestCase):
 
     def _CheckBintool(self, bintool):
         if not bintool.is_present():
-            self.skipTest('%s not available' % bintool.name)
+            self.skipTest(f'{bintool.name} not available')
 
     def _CheckLz4(self):
         bintool = self.comp_bintools['lz4']
@@ -262,7 +263,7 @@ class TestFunctional(unittest.TestCase):
     def _CleanupOutputDir(self):
         """Remove the temporary output directory"""
         if self.preserve_outdirs:
-            print('Preserving output dir: %s' % tools.outdir)
+            print(f'Preserving output dir: {tools.outdir}')
         else:
             tools._finalise_for_test()
 
@@ -314,8 +315,9 @@ class TestFunctional(unittest.TestCase):
         result = command.run_pipe([[self._binman_pathname] + list(args)],
                 capture=True, capture_stderr=True, raise_on_error=False)
         if result.return_code and kwargs.get('raise_on_error', True):
-            raise Exception("Error running '%s': %s" % (' '.join(args),
-                            result.stdout + result.stderr))
+            raise Exception(
+                f"Error running '{' '.join(args)}': {result.stdout + result.stderr}"
+            )
         return result
 
     def _DoBinman(self, *argv):
@@ -399,8 +401,7 @@ class TestFunctional(unittest.TestCase):
         if not use_expanded:
             args.append('--no-expanded')
         if entry_args:
-            for arg, value in entry_args.items():
-                args.append('-a%s=%s' % (arg, value))
+            args.extend(f'-a{arg}={value}' for arg, value in entry_args.items())
         if allow_missing:
             args.append('-M')
         if allow_fake_blobs:
@@ -510,7 +511,7 @@ class TestFunctional(unittest.TestCase):
             # For testing purposes, make a copy of the DT for SPL and TPL. Add
             # a node indicating which it is, so aid verification.
             for name in ['spl', 'tpl', 'vpl']:
-                dtb_fname = '%s/u-boot-%s.dtb' % (name, name)
+                dtb_fname = f'{name}/u-boot-{name}.dtb'
                 outfile = os.path.join(self._indir, dtb_fname)
                 TestFunctional._MakeInputFile(dtb_fname,
                         self._GetDtbContentsForSpls(dtb_data, name))
@@ -652,7 +653,7 @@ class TestFunctional(unittest.TestCase):
         for grep in grep_list:
             if grep in target:
                 return
-        self.fail("Error: '%s' not found in '%s'" % (grep_list, target))
+        self.fail(f"Error: '{grep_list}' not found in '{target}'")
 
     def CheckNoGaps(self, entries):
         """Check that all entries fit together without gaps
@@ -679,10 +680,10 @@ class TestFunctional(unittest.TestCase):
     def _GetPropTree(self, dtb, prop_names, prefix='/binman/'):
         def AddNode(node, path):
             if node.name != '/':
-                path += '/' + node.name
+                path += f'/{node.name}'
             for prop in node.props.values():
                 if prop.name in prop_names:
-                    prop_path = path + ':' + prop.name
+                    prop_path = f'{path}:{prop.name}'
                     tree[prop_path[len(prefix):]] = fdt_util.fdt32_to_cpu(
                         prop.value)
             for subnode in node.subnodes:
@@ -1979,17 +1980,20 @@ class TestFunctional(unittest.TestCase):
                 size = dtb._fdt_obj.totalsize()
                 pathname = tools.get_output_filename(os.path.split(fname)[1])
                 outdata = tools.read_file(pathname)
-                name = os.path.split(fname)[0]
-
-                if name:
+                if name := os.path.split(fname)[0]:
                     orig_indata = self._GetDtbContentsForSpls(dtb_data, name)
                 else:
                     orig_indata = dtb_data
-                self.assertNotEqual(outdata, orig_indata,
-                        "Expected output file '%s' be updated" % pathname)
-                self.assertEqual(outdata, data[start:start + size],
-                        "Expected output file '%s' to match output image" %
-                        pathname)
+                self.assertNotEqual(
+                    outdata,
+                    orig_indata,
+                    f"Expected output file '{pathname}' be updated",
+                )
+                self.assertEqual(
+                    outdata,
+                    data[start : start + size],
+                    f"Expected output file '{pathname}' to match output image",
+                )
                 start += size
         finally:
             self._ResetDtbs()
@@ -2367,7 +2371,7 @@ class TestFunctional(unittest.TestCase):
         self._SetupTplElf()
 
         # Intel Integrated Firmware Image (IFWI) file
-        with gzip.open(self.TestFile('%s.gz' % fname), 'rb') as fd:
+        with gzip.open(self.TestFile(f'{fname}.gz'), 'rb') as fd:
             data = fd.read()
         TestFunctional._MakeInputFile(fname,data)
 
@@ -2980,7 +2984,7 @@ class TestFunctional(unittest.TestCase):
         # Create a set of all file that were output (should be 9)
         outfiles = set()
         for root, dirs, files in os.walk(outdir):
-            outfiles |= set([os.path.join(root, fname) for fname in files])
+            outfiles |= {os.path.join(root, fname) for fname in files}
         self.assertEqual(9, len(outfiles))
         self.assertEqual(9, len(einfos))
 
@@ -4072,7 +4076,7 @@ class TestFunctional(unittest.TestCase):
                 expected_data: Expected contents of 'data' property
             """
             name = 'fdt-%d' % seq
-            fnode = dtb.GetNode('/images/%s' % name)
+            fnode = dtb.GetNode(f'/images/{name}')
             self.assertIsNotNone(fnode)
             self.assertEqual({'description','type', 'compression', 'data'},
                              set(fnode.props.keys()))
@@ -4093,7 +4097,7 @@ class TestFunctional(unittest.TestCase):
             self.assertEqual('config-2', cnode.props['default'].value)
 
             name = 'config-%d' % seq
-            fnode = dtb.GetNode('/configurations/%s' % name)
+            fnode = dtb.GetNode(f'/configurations/{name}')
             self.assertIsNotNone(fnode)
             self.assertEqual({'description','firmware', 'loadables', 'fdt'},
                              set(fnode.props.keys()))
@@ -5928,9 +5932,7 @@ fdt         fdtmap                Extract the devicetree blob from the fdtmap
         # Size info is always followed by a 4B zero value.
         expect += tools.get_bytes(0, 4)
         expect += U_BOOT_TPL_DATA
-        # All but last files are 4B-aligned
-        align_pad = len(U_BOOT_TPL_DATA) % 4
-        if align_pad:
+        if align_pad := len(U_BOOT_TPL_DATA) % 4:
             expect += tools.get_bytes(0, align_pad)
         expect += U_BOOT_SPL_DATA
         self.assertEqual(expect, data[-len(expect):])

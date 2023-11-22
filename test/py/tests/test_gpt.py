@@ -28,15 +28,14 @@ class GptTestDiskImage(object):
 
         filename = 'test_gpt_disk_image.bin'
 
-        persistent = u_boot_console.config.persistent_data_dir + '/' + filename
-        self.path = u_boot_console.config.result_dir  + '/' + filename
+        persistent = f'{u_boot_console.config.persistent_data_dir}/{filename}'
+        self.path = f'{u_boot_console.config.result_dir}/{filename}'
 
         with u_boot_utils.persistent_file_helper(u_boot_console.log, persistent):
             if os.path.exists(persistent):
-                u_boot_console.log.action('Disk image file ' + persistent +
-                    ' already exists')
+                u_boot_console.log.action(f'Disk image file {persistent} already exists')
             else:
-                u_boot_console.log.action('Generating ' + persistent)
+                u_boot_console.log.action(f'Generating {persistent}')
                 fd = os.open(persistent, os.O_RDWR | os.O_CREAT)
                 os.ftruncate(fd, 4194304)
                 os.close(fd)
@@ -52,7 +51,7 @@ class GptTestDiskImage(object):
                 cmd = ('sgdisk', '--new=2:4096:7167', '--change-name=2:part2',
                     persistent)
                 u_boot_utils.run_and_log(u_boot_console, cmd)
-                cmd = ('sgdisk', '--load-backup=' + persistent)
+                cmd = 'sgdisk', f'--load-backup={persistent}'
                 u_boot_utils.run_and_log(u_boot_console, cmd)
 
         cmd = ('cp', persistent, self.path)
@@ -78,7 +77,7 @@ def state_disk_image(u_boot_console):
 def test_gpt_read(state_disk_image, u_boot_console):
     """Test the gpt read command."""
 
-    u_boot_console.run_command('host bind 0 ' + state_disk_image.path)
+    u_boot_console.run_command(f'host bind 0 {state_disk_image.path}')
     output = u_boot_console.run_command('gpt read host 0')
     assert 'Start 1MiB, size 1MiB' in output
     assert 'Block size 512, name part1' in output
@@ -94,7 +93,7 @@ def test_gpt_read(state_disk_image, u_boot_console):
 def test_gpt_verify(state_disk_image, u_boot_console):
     """Test the gpt verify command."""
 
-    u_boot_console.run_command('host bind 0 ' + state_disk_image.path)
+    u_boot_console.run_command(f'host bind 0 {state_disk_image.path}')
     output = u_boot_console.run_command('gpt verify host 0')
     assert 'Verify GPT: success!' in output
 
@@ -104,7 +103,7 @@ def test_gpt_verify(state_disk_image, u_boot_console):
 def test_gpt_repair(state_disk_image, u_boot_console):
     """Test the gpt repair command."""
 
-    u_boot_console.run_command('host bind 0 ' + state_disk_image.path)
+    u_boot_console.run_command(f'host bind 0 {state_disk_image.path}')
     output = u_boot_console.run_command('gpt repair host 0')
     assert 'Repairing GPT: success!' in output
 
@@ -114,7 +113,7 @@ def test_gpt_repair(state_disk_image, u_boot_console):
 def test_gpt_guid(state_disk_image, u_boot_console):
     """Test the gpt guid command."""
 
-    u_boot_console.run_command('host bind 0 ' + state_disk_image.path)
+    u_boot_console.run_command(f'host bind 0 {state_disk_image.path}')
     output = u_boot_console.run_command('gpt guid host 0')
     assert '375a56f7-d6c9-4e81-b5f0-09d41ca89efe' in output
 
@@ -126,7 +125,7 @@ def test_gpt_save_guid(state_disk_image, u_boot_console):
 
     if u_boot_console.config.buildconfig.get('config_cmd_gpt', 'n') != 'y':
         pytest.skip('gpt command not supported')
-    u_boot_console.run_command('host bind 0 ' + state_disk_image.path)
+    u_boot_console.run_command(f'host bind 0 {state_disk_image.path}')
     output = u_boot_console.run_command('gpt guid host 0 newguid')
     output = u_boot_console.run_command('printenv newguid')
     assert '375a56f7-d6c9-4e81-b5f0-09d41ca89efe' in output
@@ -139,7 +138,7 @@ def test_gpt_save_guid(state_disk_image, u_boot_console):
 def test_gpt_rename_partition(state_disk_image, u_boot_console):
     """Test the gpt rename command to write partition names."""
 
-    u_boot_console.run_command('host bind 0 ' + state_disk_image.path)
+    u_boot_console.run_command(f'host bind 0 {state_disk_image.path}')
     u_boot_console.run_command('gpt rename host 0 1 first')
     output = u_boot_console.run_command('gpt read host 0')
     assert 'name first' in output
@@ -158,7 +157,7 @@ def test_gpt_rename_partition(state_disk_image, u_boot_console):
 def test_gpt_swap_partitions(state_disk_image, u_boot_console):
     """Test the gpt swap command to exchange two partition names."""
 
-    u_boot_console.run_command('host bind 0 ' + state_disk_image.path)
+    u_boot_console.run_command(f'host bind 0 {state_disk_image.path}')
     output = u_boot_console.run_command('part list host 0')
     assert '0x00000800	0x00000fff	"first"' in output
     assert '0x00001000	0x00001bff	"second"' in output
@@ -174,7 +173,7 @@ def test_gpt_swap_partitions(state_disk_image, u_boot_console):
 def test_gpt_write(state_disk_image, u_boot_console):
     """Test the gpt write command."""
 
-    u_boot_console.run_command('host bind 0 ' + state_disk_image.path)
+    u_boot_console.run_command(f'host bind 0 {state_disk_image.path}')
     output = u_boot_console.run_command('gpt write host 0 "name=all,size=0"')
     assert 'Writing GPT: success!' in output
     output = u_boot_console.run_command('part list host 0')

@@ -88,7 +88,7 @@ def DecodeFmap(data):
     header = FmapHeader(*fields)
     areas = []
     data = data[FMAP_HEADER_LEN:]
-    for area in range(header.nareas):
+    for _ in range(header.nareas):
         fields = list(struct.unpack(FMAP_AREA_FORMAT, data[:FMAP_AREA_LEN]))
         ConvertName(FMAP_AREA_NAMES, fields)
         areas.append(FmapArea(*fields))
